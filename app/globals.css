@@ -1,0 +1,30 @@
+@import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap');
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+:root {
+  --primary: #F97316;
+  --background: #FDF8F0;
+}
+
+html, body {
+  background-color: #FDF8F0;
+  color: #1C1917;
+  font-family: 'Inter', system-ui, sans-serif;
+}
+
+/* Safe area for mobile bottom navigation */
+.pb-safe {
+  padding-bottom: calc(4rem + env(safe-area-inset-bottom));
+}
+
+/* Smooth scrolling */
+* {
+  -webkit-tap-highlight-color: transparent;
+}
+
+/* Custom scrollbar */
+::-webkit-scrollbar { width: 4px; }
+::-webkit-scrollbar-track { background: #FDF8F0; }
+::-webkit-scrollbar-thumb { background: #E8DDD0; border-radius: 2px; }
