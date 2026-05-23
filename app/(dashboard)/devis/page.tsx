@@ -220,7 +220,7 @@ export default function NewDevisPage() {
               <button
                 onClick={() => {
                   if (newClient.prenom && newClient.nom)
-                    setSelectedClient({ id: 'new', ...newClient, marque: newClient.marque || null, created_at: '' })
+                    setSelectedClient({ id: 'new', ...newClient, marque: newClient.marque || null, derniere_synthese: null, derniere_synthese_at: null, created_at: '' })
                 }}
                 className="bg-primary text-white text-sm px-4 py-2 rounded-xl font-medium"
               >

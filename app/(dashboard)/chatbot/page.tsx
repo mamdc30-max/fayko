@@ -208,7 +208,8 @@ export default function ChatbotPage() {
   }
 
   const lastMessage = messages[messages.length - 1]
-  const hasSynthese = lastMessage?.role === 'assistant' && lastMessage.content.includes('Bloc 1')
+  const lastContent = typeof lastMessage?.content === 'string' ? lastMessage.content : (lastMessage?.content as { text?: string })?.text ?? ''
+  const hasSynthese = lastMessage?.role === 'assistant' && lastContent.includes('Bloc 1')
 
   async function handleImageSelect(e: React.ChangeEvent<HTMLInputElement>) {
     const file = e.target.files?.[0]
@@ -234,22 +235,25 @@ export default function ChatbotPage() {
 
     // Build messages for API
     const history = messages.filter(m => m.content !== makeIntro(selectedClient) && m.content !== makeIntro())
-    const apiMessages: Message[] = []
+
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    const toApiFormat = (m: Message): any => {
+      if (typeof m.content === 'string') return { role: m.role, content: m.content }
+      const blocks = []
+      if (m.content.image && m.content.image.source.data) {
+        blocks.push({ type: 'image', source: m.content.image.source })
+      }
+      if (m.content.text) blocks.push({ type: 'text', text: m.content.text })
+      if (blocks.length === 0) return { role: m.role, content: m.content.text ?? '' }
+      return { role: m.role, content: blocks }
+    }
+
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    const apiMessages: any[] = []
 
     if (selectedClient) {
       apiMessages.push({ role: 'user', content: buildClientContext(selectedClient) })
       apiMessages.push({ role: 'assistant', content: `Contexte chargé pour ${selectedClient.prenom} ${selectedClient.nom}. Prête à travailler sur ce dossier.` })
-    }
-
-    // Convert messages to Anthropic format
-    const toApiFormat = (m: Message) => {
-      if (typeof m.content === 'string') return { role: m.role, content: m.content }
-      const blocks = []
-      if (m.content.image) {
-        blocks.push({ type: 'image', source: m.content.image.source })
-      }
-      if (m.content.text) blocks.push({ type: 'text', text: m.content.text })
-      return { role: m.role, content: blocks }
     }
 
     const formattedHistory = history.map(toApiFormat)
@@ -315,7 +319,7 @@ export default function ChatbotPage() {
   }
 
   async function copySynthese() {
-    await copyToClipboard(lastMessage.content)
+    await copyToClipboard(lastContent)
     setCopied(true)
     setTimeout(() => setCopied(false), 2000)
   }
@@ -323,7 +327,7 @@ export default function ChatbotPage() {
   async function saveSynthese() {
     if (!selectedClient || !hasSynthese) return
     await supabase.from('clients').update({
-      derniere_synthese: lastMessage.content,
+      derniere_synthese: lastContent,
       derniere_synthese_at: new Date().toISOString(),
     }).eq('id', selectedClient.id)
     setSaved(true)
