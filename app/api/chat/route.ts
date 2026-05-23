@@ -1,6 +1,6 @@
 import Anthropic from '@anthropic-ai/sdk'
 
-const client = new Anthropic({ apiKey: process.env.ANTHROPIC_API_KEY })
+const apiKey = process.env.ANTHROPIC_API_KEY
 
 const SYSTEM_PROMPT = `Tu es une assistante spécialisée en communication pour entrepreneurs au démarrage. Ton rôle est de comprendre le projet, l'intention réelle et les besoins en visibilité de l'entrepreneur, pour identifier les supports les plus utiles à ce stade précis.
 
@@ -76,6 +76,11 @@ Si les réponses révèlent un décalage entre ce qui est demandé et le stade r
 La synthèse est courte, claire, sans mise en forme excessive. Elle sert à orienter rapidement vers les bons supports.`
 
 export async function POST(request: Request) {
+  if (!apiKey) {
+    return new Response('Chatbot non disponible — clé API Anthropic non configurée.', { status: 503 })
+  }
+
+  const client = new Anthropic({ apiKey })
   const { messages } = await request.json()
 
   const stream = await client.messages.stream({

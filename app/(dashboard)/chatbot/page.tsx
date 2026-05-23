@@ -15,6 +15,14 @@ Je vais te poser quelques questions sur son activité et ses besoins réels. Tu 
 
 Pour commencer : quelle est l'activité de ton client ?`
 
+const UNAVAILABLE = `Le chatbot n'est pas encore activé.
+
+Pour l'activer, ajoute une clé API Anthropic dans les paramètres de ton projet Vercel (variable ANTHROPIC_API_KEY).
+
+Tu peux obtenir une clé sur console.anthropic.com — à partir de 5$ de crédits.
+
+En attendant, tous les autres modules de Fayko sont pleinement disponibles !`
+
 export default function ChatbotPage() {
   const [messages, setMessages] = useState<Message[]>([
     { role: 'assistant', content: INTRO },
@@ -46,6 +54,12 @@ export default function ChatbotPage() {
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ messages: newMessages }),
       })
+
+      if (res.status === 503) {
+        setMessages(prev => [...prev, { role: 'assistant', content: UNAVAILABLE }])
+        setLoading(false)
+        return
+      }
 
       const reader = res.body!.getReader()
       const decoder = new TextDecoder()
