@@ -9,11 +9,11 @@ interface Message {
   content: string
 }
 
-const INTRO = `Bonjour ! Je suis là pour t'aider à qualifier le projet de ton client avant de créer le devis.
+const INTRO = `Bonjour ! Je suis là pour t'aider à préparer ta proposition avant de créer le devis.
 
-Je vais te poser quelques questions sur son activité et ses besoins réels. Tu seras ensuite guidée vers les bons supports.
+On va travailler ensemble sur le projet de ton client : je vais te poser des questions, challenger tes hypothèses, et t'aider à identifier ce qui est vraiment prioritaire.
 
-Pour commencer : quelle est l'activité de ton client ?`
+Pour commencer : c'est quel type de client ? Quelle est son activité ?`
 
 const UNAVAILABLE = `Le chatbot n'est pas encore activé.
 
