@@ -10,6 +10,8 @@ export interface Client {
   nom: string
   marque: string | null
   whatsapp: string | null
+  derniere_synthese: string | null
+  derniere_synthese_at: string | null
   created_at: string
 }
 

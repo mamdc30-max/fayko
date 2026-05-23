@@ -6,7 +6,7 @@ import Link from 'next/link'
 import { supabase } from '@/lib/supabase'
 import { formatDate, formatPrice, STATUT_COLORS } from '@/lib/utils'
 import type { Devis, Client } from '@/lib/types'
-import { ChevronLeft, MessageCircle } from 'lucide-react'
+import { ChevronLeft, MessageCircle, FileText } from 'lucide-react'
 
 export default function DossierClientPage() {
   const { id } = useParams<{ id: string }>()
@@ -127,6 +127,22 @@ export default function DossierClientPage() {
           ))}
         </div>
       </div>
+
+      {/* Dernière synthèse chatbot */}
+      {client.derniere_synthese && (
+        <section className="bg-surface rounded-2xl border border-border p-4">
+          <div className="flex items-center gap-2 mb-3">
+            <FileText size={16} className="text-primary" />
+            <h2 className="font-semibold text-stone-800 text-sm">Dernière synthèse de qualification</h2>
+            {client.derniere_synthese_at && (
+              <span className="text-xs text-muted ml-auto">{formatDate(client.derniere_synthese_at)}</span>
+            )}
+          </div>
+          <pre className="text-xs text-stone-700 whitespace-pre-wrap leading-relaxed font-sans bg-beige-50 rounded-xl p-3 border border-border">
+            {client.derniere_synthese}
+          </pre>
+        </section>
+      )}
 
       {/* Nouveau devis pour ce client */}
       <Link href="/devis"
