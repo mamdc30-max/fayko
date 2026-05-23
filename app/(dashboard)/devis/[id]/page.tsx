@@ -5,7 +5,7 @@ import { useParams, useRouter } from 'next/navigation'
 import { supabase } from '@/lib/supabase'
 import { calcTotal, formatPrice, formatDate, generateDevisText, copyToClipboard, STATUTS, STATUT_COLORS, applyTemplateVars } from '@/lib/utils'
 import type { Devis, Client, DevisLigne, DevisFormLigne, Settings, Template } from '@/lib/types'
-import { Copy, Check, Trash2, ChevronLeft, Save } from 'lucide-react'
+import { Copy, Check, Trash2, ChevronLeft, Save, Download } from 'lucide-react'
 import { cn } from '@/lib/utils'
 import Link from 'next/link'
 
@@ -300,6 +300,18 @@ export default function DevisFichePage() {
           ))}
         </div>
       </section>
+
+      {/* Facture PDF */}
+      {['Soldé', 'Acompte reçu'].includes(statut) && (
+        <a
+          href={`/facture/${id}`}
+          target="_blank"
+          rel="noopener noreferrer"
+          className="flex items-center justify-center gap-2 w-full py-3.5 rounded-2xl bg-green-600 hover:bg-green-700 text-white font-semibold text-sm transition"
+        >
+          <Download size={18} /> Télécharger la facture PDF
+        </a>
+      )}
 
       {/* Actions */}
       <div className="flex gap-3">
