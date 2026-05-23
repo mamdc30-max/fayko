@@ -5,7 +5,7 @@ import { useParams, useRouter } from 'next/navigation'
 import { supabase } from '@/lib/supabase'
 import { calcTotal, formatPrice, formatDate, generateDevisText, copyToClipboard, STATUTS, STATUT_COLORS, applyTemplateVars } from '@/lib/utils'
 import type { Devis, Client, DevisLigne, DevisFormLigne, Settings, Template } from '@/lib/types'
-import { Copy, Check, Trash2, ChevronLeft, Save, Download } from 'lucide-react'
+import { Copy, Check, Trash2, ChevronLeft, Save, Download, MessageCircle } from 'lucide-react'
 import { cn } from '@/lib/utils'
 import Link from 'next/link'
 
@@ -164,12 +164,23 @@ export default function DevisFichePage() {
           <pre className="text-xs text-green-700 whitespace-pre-wrap leading-relaxed font-sans mb-3 bg-white rounded-xl p-3 border border-green-100">
             {applyTemplateVars(remerciementTemplate.contenu, client, { ...devis, total_ht: total }, settings.acompte_pourcentage)}
           </pre>
-          <div className="flex gap-2">
-            <button onClick={() => handleCopyTemplate(remerciementTemplate)}
-              className="flex items-center gap-1.5 bg-green-600 text-white text-sm px-4 py-2 rounded-xl font-medium">
-              {templateCopied === remerciementTemplate.id ? <Check size={14} /> : <Copy size={14} />}
-              {templateCopied === remerciementTemplate.id ? 'Copié !' : 'Copier'}
-            </button>
+          <div className="flex gap-2 flex-wrap">
+            {client.whatsapp ? (
+              <a
+                href={`https://wa.me/${client.whatsapp.replace(/\D/g, '')}?text=${encodeURIComponent(applyTemplateVars(remerciementTemplate.contenu, client, { ...devis, total_ht: total }, settings.acompte_pourcentage))}`}
+                target="_blank"
+                rel="noopener noreferrer"
+                className="flex items-center gap-1.5 bg-[#25D366] text-white text-sm px-4 py-2 rounded-xl font-medium hover:bg-[#1ebe5d] transition"
+              >
+                <MessageCircle size={14} /> Envoyer sur WhatsApp
+              </a>
+            ) : (
+              <button onClick={() => handleCopyTemplate(remerciementTemplate)}
+                className="flex items-center gap-1.5 bg-green-600 text-white text-sm px-4 py-2 rounded-xl font-medium">
+                {templateCopied === remerciementTemplate.id ? <Check size={14} /> : <Copy size={14} />}
+                {templateCopied === remerciementTemplate.id ? 'Copié !' : 'Copier'}
+              </button>
+            )}
             <button onClick={() => setShowRemerciement(false)} className="text-sm text-muted px-3 py-2">Fermer</button>
           </div>
         </div>
@@ -291,13 +302,28 @@ export default function DevisFichePage() {
       <section className="bg-surface rounded-2xl border border-border p-4">
         <h2 className="font-semibold text-stone-800 text-sm mb-3">Messages rapides</h2>
         <div className="space-y-2">
-          {templates.filter(t => t.type !== 'remerciement').map(t => (
-            <button key={t.id} onClick={() => handleCopyTemplate(t)}
-              className="w-full flex items-center justify-between px-3 py-2.5 border border-border rounded-xl hover:border-primary/30 text-sm transition">
-              <span className="text-stone-700">{t.type === 'paiement' ? '💳 Lien de paiement' : '🔔 Relance'}</span>
-              {templateCopied === t.id ? <Check size={16} className="text-green-500" /> : <Copy size={16} className="text-muted" />}
-            </button>
-          ))}
+          {templates.filter(t => t.type !== 'remerciement').map(t => {
+            const msg = applyTemplateVars(t.contenu, client, { ...devis, total_ht: calcTotal(lignes, remiseType || null, remiseValeur ? parseFloat(remiseValeur) : null).total }, settings.acompte_pourcentage)
+            const label = t.type === 'paiement' ? '💳 Lien de paiement' : '🔔 Relance'
+            return client.whatsapp ? (
+              <a
+                key={t.id}
+                href={`https://wa.me/${client.whatsapp.replace(/\D/g, '')}?text=${encodeURIComponent(msg)}`}
+                target="_blank"
+                rel="noopener noreferrer"
+                className="w-full flex items-center justify-between px-3 py-2.5 border border-border rounded-xl hover:border-[#25D366]/40 text-sm transition"
+              >
+                <span className="text-stone-700">{label}</span>
+                <MessageCircle size={16} className="text-[#25D366]" />
+              </a>
+            ) : (
+              <button key={t.id} onClick={() => handleCopyTemplate(t)}
+                className="w-full flex items-center justify-between px-3 py-2.5 border border-border rounded-xl hover:border-primary/30 text-sm transition">
+                <span className="text-stone-700">{label}</span>
+                {templateCopied === t.id ? <Check size={16} className="text-green-500" /> : <Copy size={16} className="text-muted" />}
+              </button>
+            )
+          })}
         </div>
       </section>
 
