@@ -182,7 +182,7 @@ export default function ParametresPage() {
             <div key={f.id} className="flex items-center justify-between px-3 py-2.5 rounded-xl border border-border hover:border-primary/20 transition">
               <div className="flex-1 min-w-0">
                 <p className="text-sm font-medium text-stone-800">{f.nom}</p>
-                {f.description && <p className="text-xs text-muted truncate">{f.description}</p>}
+                {f.description && <p className="text-xs text-muted mt-0.5">{f.description}</p>}
               </div>
               <div className="flex items-center gap-2 ml-2 shrink-0">
                 <span className="text-sm font-semibold text-primary">{formatPrice(f.prix_ht)}</span>

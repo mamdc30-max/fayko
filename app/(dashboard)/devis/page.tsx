@@ -24,7 +24,7 @@ export default function NewDevisPage() {
   const [clientSearch, setClientSearch] = useState('')
   const [selectedClient, setSelectedClient] = useState<Client | null>(null)
   const [showClientForm, setShowClientForm] = useState(false)
-  const [newClient, setNewClient] = useState({ prenom: '', nom: '', whatsapp: '' })
+  const [newClient, setNewClient] = useState({ prenom: '', nom: '', marque: '', whatsapp: '' })
   const [titre, setTitre] = useState('')
   const [lignes, setLignes] = useState<DevisFormLigne[]>([])
   const [remiseType, setRemiseType] = useState<'fixe' | 'pourcentage' | ''>('')
@@ -68,7 +68,7 @@ export default function NewDevisPage() {
   )
 
   function addForfait(f: Forfait) {
-    setLignes(prev => [...prev, { id: newId(), type: 'forfait', libelle: f.nom, prix: f.prix_ht, ref_id: f.id }])
+    setLignes(prev => [...prev, { id: newId(), type: 'forfait', libelle: f.nom, description: f.description || null, prix: f.prix_ht, ref_id: f.id }])
     setOpenSection(null)
   }
 
@@ -140,7 +140,7 @@ export default function NewDevisPage() {
       if (devis) {
         // Save lignes
         await supabase.from('devis_lignes').insert(
-          lignes.map((l, i) => ({ devis_id: devis.id, type: l.type, libelle: l.libelle, prix: l.prix, ref_id: l.ref_id || null, ordre: i }))
+          lignes.map((l, i) => ({ devis_id: devis.id, type: l.type, libelle: l.libelle, description: l.description || null, prix: l.prix, ref_id: l.ref_id || null, ordre: i }))
         )
         // Save initial statut
         await supabase.from('devis_statut_history').insert({ devis_id: devis.id, statut: 'Envoyé' })
@@ -215,13 +215,15 @@ export default function NewDevisPage() {
               <input value={newClient.nom} onChange={e => setNewClient(p => ({ ...p, nom: e.target.value }))}
                 placeholder="Nom *" className="border border-border rounded-xl px-3 py-2.5 text-sm bg-beige-50 focus:outline-none focus:ring-2 focus:ring-primary/30" />
             </div>
+            <input value={newClient.marque} onChange={e => setNewClient(p => ({ ...p, marque: e.target.value }))}
+              placeholder="Nom de marque / activité (optionnel)" className="w-full border border-border rounded-xl px-3 py-2.5 text-sm bg-beige-50 focus:outline-none focus:ring-2 focus:ring-primary/30" />
             <input value={newClient.whatsapp} onChange={e => setNewClient(p => ({ ...p, whatsapp: e.target.value }))}
               placeholder="WhatsApp (ex: +33612345678)" className="w-full border border-border rounded-xl px-3 py-2.5 text-sm bg-beige-50 focus:outline-none focus:ring-2 focus:ring-primary/30" />
             <div className="flex gap-2">
               <button
                 onClick={() => {
                   if (newClient.prenom && newClient.nom)
-                    setSelectedClient({ id: 'new', ...newClient, created_at: '' })
+                    setSelectedClient({ id: 'new', ...newClient, marque: newClient.marque || null, created_at: '' })
                 }}
                 className="bg-primary text-white text-sm px-4 py-2 rounded-xl font-medium"
               >
@@ -236,6 +238,7 @@ export default function NewDevisPage() {
           <div className="flex items-center justify-between bg-primary-light rounded-xl px-3 py-2.5">
             <div>
               <p className="font-medium text-sm text-stone-800">{selectedClient.prenom} {selectedClient.nom}</p>
+              {selectedClient.marque && <p className="text-xs text-primary font-medium">{selectedClient.marque}</p>}
               {selectedClient.whatsapp && <p className="text-xs text-muted">{selectedClient.whatsapp}</p>}
             </div>
             <button onClick={() => setSelectedClient(null)} className="text-xs text-muted hover:text-stone-700">Changer</button>
@@ -269,7 +272,10 @@ export default function NewDevisPage() {
                   className="w-full border border-border rounded-xl px-3 py-2 text-sm bg-beige-50 focus:outline-none focus:ring-2 focus:ring-primary/30"
                 />
               ) : (
-                <div className="bg-beige-50 border border-border rounded-xl px-3 py-2 text-sm text-stone-700">{ligne.libelle}</div>
+                <div className="bg-beige-50 border border-border rounded-xl px-3 py-2 text-sm text-stone-700">
+                  <span>{ligne.libelle}</span>
+                  {ligne.description && <p className="text-xs text-muted mt-0.5">{ligne.description}</p>}
+                </div>
               )}
             </div>
             <div className="w-24">

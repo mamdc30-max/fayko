@@ -8,6 +8,7 @@ export interface Client {
   id: string
   prenom: string
   nom: string
+  marque: string | null
   whatsapp: string | null
   created_at: string
 }
@@ -86,6 +87,7 @@ export interface DevisFormLigne {
   id: string
   type: LigneType
   libelle: string
+  description?: string | null
   prix: number
   ref_id?: string
 }

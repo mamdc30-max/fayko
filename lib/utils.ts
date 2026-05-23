@@ -43,9 +43,14 @@ export function generateDevisText(
   const { remise, total } = calcTotal(lignes, remiseType, remiseValeur)
   const acompte = total * acomptePourcentage / 100
 
-  const lignesText = lignes.map(l => `- ${l.libelle} : ${formatPrice(l.prix)}`).join('\n')
+  const lignesText = lignes.map(l => {
+    let line = `- ${l.libelle} : ${formatPrice(l.prix)}`
+    if (l.description) line += `\n  (${l.description})`
+    return line
+  }).join('\n')
 
-  let text = `Bonjour ${client.prenom},\n\nVoici ton devis personnalisé :\n\n${lignesText}\n`
+  const marqueLabel = client.marque ? ` — *${client.marque}*` : ''
+  let text = `Bonjour ${client.prenom}${marqueLabel},\n\nVoici ton devis personnalisé :\n\n${lignesText}\n`
 
   if (remise > 0) {
     text += `\nRemise : -${formatPrice(remise)}`
