@@ -92,12 +92,13 @@ export async function POST(request: Request) {
   const client = new Anthropic({ apiKey })
   const { messages } = await request.json()
 
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
   const stream = await client.messages.stream({
     model: 'claude-sonnet-4-6',
     max_tokens: 1024,
     system: SYSTEM_PROMPT,
     messages,
-  })
+  } as any)
 
   const encoder = new TextEncoder()
   const readable = new ReadableStream({

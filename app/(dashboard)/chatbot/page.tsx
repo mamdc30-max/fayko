@@ -1,14 +1,46 @@
 'use client'
 
 import { useState, useRef, useEffect } from 'react'
-import { Send, RotateCcw, Copy, Check, Search, X, Save, UserCircle2 } from 'lucide-react'
+import { Send, RotateCcw, Copy, Check, Search, X, Save, UserCircle2, Paperclip } from 'lucide-react'
 import { copyToClipboard, formatDate, formatPrice } from '@/lib/utils'
 import { supabase } from '@/lib/supabase'
 import type { Client, Devis } from '@/lib/types'
 
+interface ImageBlock {
+  type: 'image'
+  source: { type: 'base64'; media_type: string; data: string }
+  preview: string // data URL for display
+}
+
 interface Message {
   role: 'user' | 'assistant'
-  content: string
+  content: string | { text?: string; image?: ImageBlock }
+}
+
+// Resize + compress image to stay under 4MB base64
+async function compressImage(file: File): Promise<{ base64: string; mediaType: string; preview: string }> {
+  return new Promise((resolve, reject) => {
+    const img = new Image()
+    const objectUrl = URL.createObjectURL(file)
+    img.onload = () => {
+      const MAX = 1400
+      let { width, height } = img
+      if (width > MAX || height > MAX) {
+        if (width > height) { height = Math.round((height * MAX) / width); width = MAX }
+        else { width = Math.round((width * MAX) / height); height = MAX }
+      }
+      const canvas = document.createElement('canvas')
+      canvas.width = width
+      canvas.height = height
+      canvas.getContext('2d')!.drawImage(img, 0, 0, width, height)
+      const preview = canvas.toDataURL('image/jpeg', 0.85)
+      const base64 = preview.split(',')[1]
+      URL.revokeObjectURL(objectUrl)
+      resolve({ base64, mediaType: 'image/jpeg', preview })
+    }
+    img.onerror = reject
+    img.src = objectUrl
+  })
 }
 
 interface ClientWithDevis extends Client {
@@ -65,7 +97,9 @@ export default function ChatbotPage() {
   const [loading, setLoading] = useState(false)
   const [copied, setCopied] = useState(false)
   const [saved, setSaved] = useState(false)
+  const [pendingImage, setPendingImage] = useState<ImageBlock | null>(null)
   const bottomRef = useRef<HTMLDivElement>(null)
+  const fileInputRef = useRef<HTMLInputElement>(null)
 
   // Client selector
   const [clients, setClients] = useState<Client[]>([])
@@ -119,11 +153,29 @@ export default function ChatbotPage() {
   const lastMessage = messages[messages.length - 1]
   const hasSynthese = lastMessage?.role === 'assistant' && lastMessage.content.includes('Bloc 1')
 
-  async function sendMessage() {
-    if (!input.trim() || loading) return
-    const userMsg: Message = { role: 'user', content: input.trim() }
+  async function handleImageSelect(e: React.ChangeEvent<HTMLInputElement>) {
+    const file = e.target.files?.[0]
+    if (!file) return
+    try {
+      const { base64, mediaType, preview } = await compressImage(file)
+      setPendingImage({ type: 'image', source: { type: 'base64', media_type: mediaType, data: base64 }, preview })
+    } catch {
+      alert('Impossible de charger cette image.')
+    }
+    e.target.value = ''
+  }
 
-    // Build messages for API: filter intro, prepend client context if any
+  async function sendMessage() {
+    if ((!input.trim() && !pendingImage) || loading) return
+
+    const userMsg: Message = {
+      role: 'user',
+      content: pendingImage
+        ? { text: input.trim() || 'Voici ce que mon client m\'a partagé.', image: pendingImage }
+        : input.trim(),
+    }
+
+    // Build messages for API
     const history = messages.filter(m => m.content !== makeIntro(selectedClient) && m.content !== makeIntro())
     const apiMessages: Message[] = []
 
@@ -132,10 +184,23 @@ export default function ChatbotPage() {
       apiMessages.push({ role: 'assistant', content: `Contexte chargé pour ${selectedClient.prenom} ${selectedClient.nom}. Prête à travailler sur ce dossier.` })
     }
 
-    apiMessages.push(...history, userMsg)
+    // Convert messages to Anthropic format
+    const toApiFormat = (m: Message) => {
+      if (typeof m.content === 'string') return { role: m.role, content: m.content }
+      const blocks = []
+      if (m.content.image) {
+        blocks.push({ type: 'image', source: m.content.image.source })
+      }
+      if (m.content.text) blocks.push({ type: 'text', text: m.content.text })
+      return { role: m.role, content: blocks }
+    }
+
+    const formattedHistory = history.map(toApiFormat)
+    apiMessages.push(...formattedHistory, toApiFormat(userMsg))
 
     setMessages(prev => [...prev, userMsg])
     setInput('')
+    setPendingImage(null)
     setLoading(true)
 
     try {
@@ -194,10 +259,11 @@ export default function ChatbotPage() {
     setMessages([{ role: 'assistant', content: makeIntro() }])
     setInput('')
     setSaved(false)
+    setPendingImage(null)
   }
 
   function handleKeyDown(e: React.KeyboardEvent) {
-    if (e.key === 'Enter' && !e.shiftKey) {
+    if (e.key === 'Enter' && !e.shiftKey && !pendingImage) {
       e.preventDefault()
       sendMessage()
     }
@@ -279,12 +345,27 @@ export default function ChatbotPage() {
       <div className="flex-1 overflow-y-auto space-y-3 pb-2">
         {messages.map((msg, i) => (
           <div key={i} className={`flex ${msg.role === 'user' ? 'justify-end' : 'justify-start'}`}>
-            <div className={`max-w-[85%] px-4 py-3 rounded-2xl text-sm whitespace-pre-wrap leading-relaxed ${
+            <div className={`max-w-[85%] rounded-2xl text-sm ${
               msg.role === 'user'
                 ? 'bg-primary text-white rounded-br-sm'
                 : 'bg-surface border border-border text-stone-800 rounded-bl-sm'
             }`}>
-              {msg.content}
+              {typeof msg.content === 'string' ? (
+                <p className="px-4 py-3 whitespace-pre-wrap leading-relaxed">{msg.content}</p>
+              ) : (
+                <div className="overflow-hidden">
+                  {msg.content.image && (
+                    <img
+                      src={msg.content.image.preview}
+                      alt="Pièce jointe"
+                      className="w-full max-w-[280px] rounded-t-2xl object-cover"
+                    />
+                  )}
+                  {msg.content.text && (
+                    <p className="px-4 py-3 whitespace-pre-wrap leading-relaxed">{msg.content.text}</p>
+                  )}
+                </div>
+              )}
             </div>
           </div>
         ))}
@@ -329,20 +410,47 @@ export default function ChatbotPage() {
         </div>
       )}
 
+      {/* Image preview */}
+      {pendingImage && (
+        <div className="relative mb-2 inline-block">
+          <img src={pendingImage.preview} alt="À envoyer" className="h-20 rounded-xl border border-border object-cover" />
+          <button
+            onClick={() => setPendingImage(null)}
+            className="absolute -top-2 -right-2 bg-stone-700 text-white rounded-full w-5 h-5 flex items-center justify-center"
+          >
+            <X size={12} />
+          </button>
+        </div>
+      )}
+
       {/* Input */}
       <div className="flex gap-2 items-end">
+        <input
+          ref={fileInputRef}
+          type="file"
+          accept="image/*"
+          className="hidden"
+          onChange={handleImageSelect}
+        />
+        <button
+          onClick={() => fileInputRef.current?.click()}
+          className="p-3 rounded-xl border border-border bg-surface text-muted hover:text-stone-700 hover:border-primary/30 transition shrink-0"
+          title="Ajouter une image"
+        >
+          <Paperclip size={18} />
+        </button>
         <textarea
           value={input}
           onChange={e => setInput(e.target.value)}
           onKeyDown={handleKeyDown}
-          placeholder="Tape ta réponse…"
+          placeholder={pendingImage ? "Ajoute un commentaire (optionnel)…" : "Tape ta réponse…"}
           rows={1}
           className="flex-1 border border-border rounded-xl px-4 py-3 text-sm bg-surface focus:outline-none focus:ring-2 focus:ring-primary/30 focus:border-primary resize-none transition"
           style={{ maxHeight: '120px' }}
         />
         <button
           onClick={sendMessage}
-          disabled={!input.trim() || loading}
+          disabled={(!input.trim() && !pendingImage) || loading}
           className="bg-primary text-white rounded-xl p-3 hover:bg-primary-dark transition disabled:opacity-40 shrink-0"
         >
           <Send size={18} />
