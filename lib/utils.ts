@@ -76,6 +76,7 @@ export function applyTemplateVars(
   const acompte = devis.total_ht * acomptePourcentage / 100
   return contenu
     .replace(/\[Prénom\]/g, client.prenom)
+    .replace(/\[Marque\]/g, client.marque || client.prenom)
     .replace(/\[Montant\]/g, formatPrice(devis.total_ht))
     .replace(/\[Acompte\]/g, formatPrice(acompte))
 }

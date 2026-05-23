@@ -4,21 +4,31 @@ import { useEffect, useState } from 'react'
 import Link from 'next/link'
 import { supabase } from '@/lib/supabase'
 import { formatDate, formatPrice, STATUT_COLORS } from '@/lib/utils'
-import { Bell, PlusCircle, Clock, TrendingUp } from 'lucide-react'
+import { Bell, PlusCircle, Clock, TrendingUp, Euro, Hourglass } from 'lucide-react'
 import type { Devis, Client } from '@/lib/types'
 
 interface DevisWithClient extends Devis { clients: Client }
 
+interface Stats {
+  caMois: number
+  enAttente: number
+  devisMois: number
+  tauxConversion: number
+}
+
 export default function HomePage() {
   const [relances, setRelances] = useState<DevisWithClient[]>([])
   const [recent, setRecent] = useState<DevisWithClient[]>([])
-  const [stats, setStats] = useState({ total: 0, enCours: 0, solde: 0 })
+  const [stats, setStats] = useState<Stats>({ caMois: 0, enAttente: 0, devisMois: 0, tauxConversion: 0 })
   const [loading, setLoading] = useState(true)
 
   useEffect(() => {
     async function load() {
       const sevenDaysAgo = new Date()
       sevenDaysAgo.setDate(sevenDaysAgo.getDate() - 7)
+      const startOfMonth = new Date()
+      startOfMonth.setDate(1)
+      startOfMonth.setHours(0, 0, 0, 0)
 
       const [{ data: allDevis }, { data: relancesData }] = await Promise.all([
         supabase.from('devis').select('*, clients(*)').order('created_at', { ascending: false }),
@@ -32,11 +42,17 @@ export default function HomePage() {
       if (allDevis) {
         const d = allDevis as DevisWithClient[]
         setRecent(d.slice(0, 5))
-        setStats({
-          total: d.length,
-          enCours: d.filter(x => !['Soldé', 'Annulé'].includes(x.statut)).length,
-          solde: d.filter(x => x.statut === 'Soldé').length,
-        })
+        const nonAnnules = d.filter(x => x.statut !== 'Annulé')
+        const soldes = d.filter(x => x.statut === 'Soldé')
+        const caMois = d
+          .filter(x => x.statut === 'Soldé' && new Date(x.updated_at) >= startOfMonth)
+          .reduce((s, x) => s + x.total_ht, 0)
+        const enAttente = d
+          .filter(x => ['Envoyé', 'Validé', 'Acompte reçu'].includes(x.statut))
+          .reduce((s, x) => s + x.total_ht, 0)
+        const devisMois = d.filter(x => new Date(x.created_at) >= startOfMonth).length
+        const tauxConversion = nonAnnules.length > 0 ? Math.round((soldes.length / nonAnnules.length) * 100) : 0
+        setStats({ caMois, enAttente, devisMois, tauxConversion })
       }
 
       if (relancesData) {
@@ -60,17 +76,23 @@ export default function HomePage() {
       </div>
 
       {/* Stats */}
-      <div className="grid grid-cols-3 gap-3">
-        {[
-          { label: 'Total devis', value: stats.total, icon: TrendingUp },
-          { label: 'En cours', value: stats.enCours, icon: Clock },
-          { label: 'Soldés', value: stats.solde, icon: PlusCircle },
-        ].map(({ label, value, icon: Icon }) => (
-          <div key={label} className="bg-surface rounded-2xl p-4 border border-border">
-            <p className="text-xs text-muted mb-1">{label}</p>
-            <p className="text-2xl font-bold text-stone-800">{value}</p>
-          </div>
-        ))}
+      <div className="grid grid-cols-2 gap-3">
+        <div className="bg-primary rounded-2xl p-4 text-white">
+          <p className="text-xs text-white/70 mb-1">CA encaissé ce mois</p>
+          <p className="text-2xl font-bold">{formatPrice(stats.caMois)}</p>
+        </div>
+        <div className="bg-surface rounded-2xl p-4 border border-border">
+          <p className="text-xs text-muted mb-1">En attente</p>
+          <p className="text-2xl font-bold text-amber-600">{formatPrice(stats.enAttente)}</p>
+        </div>
+        <div className="bg-surface rounded-2xl p-4 border border-border">
+          <p className="text-xs text-muted mb-1">Devis ce mois</p>
+          <p className="text-2xl font-bold text-stone-800">{stats.devisMois}</p>
+        </div>
+        <div className="bg-surface rounded-2xl p-4 border border-border">
+          <p className="text-xs text-muted mb-1">Taux de conversion</p>
+          <p className="text-2xl font-bold text-stone-800">{stats.tauxConversion}%</p>
+        </div>
       </div>
 
       {/* Relances */}

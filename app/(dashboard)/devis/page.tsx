@@ -5,7 +5,7 @@ import { useRouter } from 'next/navigation'
 import { supabase } from '@/lib/supabase'
 import { calcTotal, formatPrice, generateDevisText, copyToClipboard } from '@/lib/utils'
 import type { Client, Forfait, ElementCarte, DevisFormLigne, Settings } from '@/lib/types'
-import { Plus, Trash2, Copy, Check, ChevronDown, ChevronUp, Search } from 'lucide-react'
+import { Plus, Trash2, Copy, Check, ChevronDown, ChevronUp, Search, MessageCircle, History } from 'lucide-react'
 import { cn } from '@/lib/utils'
 
 let lineCounter = 0
@@ -148,9 +148,6 @@ export default function NewDevisPage() {
 
       await copyToClipboard(preview)
       setCopied(true)
-      setTimeout(() => {
-        router.push('/historique')
-      }, 1200)
     } finally {
       setSaving(false)
     }
@@ -419,26 +416,49 @@ export default function NewDevisPage() {
       )}
 
       {/* COPY BUTTON */}
-      <button
-        onClick={handleCopy}
-        disabled={!canCopy || saving || copied}
-        className={cn(
-          'w-full py-4 rounded-2xl font-bold text-base flex items-center justify-center gap-2 transition',
-          canCopy
-            ? copied
-              ? 'bg-green-500 text-white'
-              : 'bg-primary text-white hover:bg-primary-dark'
-            : 'bg-beige-200 text-muted cursor-not-allowed'
-        )}
-      >
-        {copied ? <Check size={20} /> : <Copy size={20} />}
-        {saving ? 'Enregistrement…' : copied ? 'Copié et enregistré !' : 'Copier le devis'}
-      </button>
-
-      {!canCopy && (
-        <p className="text-center text-xs text-muted -mt-3">
-          Sélectionne un client, ajoute un titre et au moins un élément
-        </p>
+      {!copied ? (
+        <>
+          <button
+            onClick={handleCopy}
+            disabled={!canCopy || saving}
+            className={cn(
+              'w-full py-4 rounded-2xl font-bold text-base flex items-center justify-center gap-2 transition',
+              canCopy
+                ? 'bg-primary text-white hover:bg-primary-dark'
+                : 'bg-beige-200 text-muted cursor-not-allowed'
+            )}
+          >
+            <Copy size={20} />
+            {saving ? 'Enregistrement…' : 'Copier le devis'}
+          </button>
+          {!canCopy && (
+            <p className="text-center text-xs text-muted -mt-3">
+              Sélectionne un client, ajoute un titre et au moins un élément
+            </p>
+          )}
+        </>
+      ) : (
+        <div className="space-y-3">
+          <div className="flex items-center justify-center gap-2 w-full py-3.5 rounded-2xl bg-green-100 text-green-700 font-semibold text-sm">
+            <Check size={18} /> Devis copié et enregistré !
+          </div>
+          {selectedClient?.whatsapp && (
+            <a
+              href={`https://wa.me/${selectedClient.whatsapp.replace(/\D/g, '')}?text=${encodeURIComponent(preview)}`}
+              target="_blank"
+              rel="noopener noreferrer"
+              className="flex items-center justify-center gap-2 w-full py-4 rounded-2xl bg-[#25D366] text-white font-bold text-base hover:bg-[#1ebe5d] transition"
+            >
+              <MessageCircle size={20} /> Envoyer sur WhatsApp
+            </a>
+          )}
+          <button
+            onClick={() => router.push('/historique')}
+            className="flex items-center justify-center gap-2 w-full py-3 rounded-2xl border border-border text-stone-600 text-sm font-medium hover:bg-beige-50 transition"
+          >
+            <History size={16} /> Voir l'historique
+          </button>
+        </div>
       )}
     </div>
   )

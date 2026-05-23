@@ -148,6 +148,11 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
 
       {/* Main content */}
       <main className="md:ml-56 pt-14 md:pt-0 pb-20 md:pb-0 min-h-screen">
+        {relancesCount > 0 && pathname !== '/relances' && (
+          <Link href="/relances" className="block bg-primary text-white text-xs font-medium text-center py-2 px-4 hover:bg-primary-dark transition">
+            🔔 {relancesCount} relance{relancesCount > 1 ? 's' : ''} en attente — cliquer pour voir
+          </Link>
+        )}
         <div className="max-w-2xl mx-auto px-4 py-6">
           {children}
         </div>
