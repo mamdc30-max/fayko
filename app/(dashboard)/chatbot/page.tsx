@@ -1,7 +1,7 @@
 'use client'
 
 import { useState, useRef, useEffect } from 'react'
-import { Send, RotateCcw, Copy, Check, Search, X, Save, UserCircle2, Paperclip } from 'lucide-react'
+import { Send, RotateCcw, Copy, Check, Search, X, Save, UserCircle2, Paperclip, Clock } from 'lucide-react'
 import { copyToClipboard, formatDate, formatPrice } from '@/lib/utils'
 import { supabase } from '@/lib/supabase'
 import type { Client, Devis } from '@/lib/types'
@@ -15,6 +15,36 @@ interface ImageBlock {
 interface Message {
   role: 'user' | 'assistant'
   content: string | { text?: string; image?: ImageBlock }
+}
+
+// Serialize messages for DB (strip image binary data)
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
+function serializeMessages(msgs: Message[]): any[] {
+  return msgs.map(m => {
+    if (typeof m.content === 'string') return { role: m.role, content: m.content }
+    return {
+      role: m.role,
+      content: {
+        text: m.content.text,
+        image: m.content.image ? '[Image partagée]' : undefined,
+      },
+    }
+  })
+}
+
+// Restore messages from DB (images become placeholders)
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
+function deserializeMessages(raw: any[]): Message[] {
+  return raw.map(m => {
+    if (typeof m.content === 'string') return { role: m.role, content: m.content } as Message
+    return {
+      role: m.role,
+      content: {
+        text: m.content.text,
+        image: m.content.image === '[Image partagée]' ? { type: 'image' as const, source: { type: 'base64' as const, media_type: 'image/jpeg', data: '' }, preview: '' } : undefined,
+      },
+    } as Message
+  })
 }
 
 // Resize + compress image to stay under 4MB base64
@@ -98,6 +128,9 @@ export default function ChatbotPage() {
   const [copied, setCopied] = useState(false)
   const [saved, setSaved] = useState(false)
   const [pendingImage, setPendingImage] = useState<ImageBlock | null>(null)
+  const [sessionId, setSessionId] = useState<string | null>(null)
+  const [recentSessions, setRecentSessions] = useState<{ id: string; created_at: string; preview: string }[]>([])
+  const [showHistory, setShowHistory] = useState(false)
   const bottomRef = useRef<HTMLDivElement>(null)
   const fileInputRef = useRef<HTMLInputElement>(null)
 
@@ -107,10 +140,34 @@ export default function ChatbotPage() {
   const [selectedClient, setSelectedClient] = useState<ClientWithDevis | null>(null)
   const [showSearch, setShowSearch] = useState(false)
 
+  // Load last session + clients on mount
   useEffect(() => {
-    supabase.from('clients').select('*').order('nom').then(({ data }) => {
-      if (data) setClients(data)
-    })
+    async function init() {
+      const [{ data: clientsData }, { data: sessions }] = await Promise.all([
+        supabase.from('clients').select('*').order('nom'),
+        supabase.from('chat_sessions').select('*').order('updated_at', { ascending: false }).limit(10),
+      ])
+      if (clientsData) setClients(clientsData)
+      if (sessions && sessions.length > 0) {
+        const last = sessions[0]
+        const msgs = deserializeMessages(last.messages as [])
+        if (msgs.length > 1) {
+          setSessionId(last.id)
+          setMessages(msgs)
+        }
+        setRecentSessions(sessions.map(s => ({
+          id: s.id,
+          created_at: s.created_at,
+          preview: (() => {
+            const m = (s.messages as []).find((x: { role: string }) => x.role === 'user')
+            // eslint-disable-next-line @typescript-eslint/no-explicit-any
+            const c = (m as any)?.content
+            return typeof c === 'string' ? c.slice(0, 60) : c?.text?.slice(0, 60) ?? 'Session'
+          })(),
+        })))
+      }
+    }
+    init()
   }, [])
 
   useEffect(() => {
@@ -231,10 +288,29 @@ export default function ChatbotPage() {
           return updated
         })
       }
+      // Auto-save after each exchange
+      setMessages(prev => {
+        autoSave(prev, sessionId).then(newId => { if (!sessionId) setSessionId(newId) })
+        return prev
+      })
     } catch {
       setMessages(prev => [...prev, { role: 'assistant', content: 'Une erreur est survenue. Réessaie.' }])
     } finally {
       setLoading(false)
+    }
+  }
+
+  async function autoSave(msgs: Message[], sid: string | null): Promise<string> {
+    const serialized = serializeMessages(msgs)
+    if (sid) {
+      await supabase.from('chat_sessions').update({ messages: serialized, updated_at: new Date().toISOString() }).eq('id', sid)
+      return sid
+    } else {
+      const { data } = await supabase.from('chat_sessions').insert({
+        messages: serialized,
+        client_id: selectedClient?.id ?? null,
+      }).select().single()
+      return data?.id ?? sid ?? ''
     }
   }
 
@@ -256,10 +332,21 @@ export default function ChatbotPage() {
 
   function reset() {
     setSelectedClient(null)
+    setSessionId(null)
     setMessages([{ role: 'assistant', content: makeIntro() }])
     setInput('')
     setSaved(false)
     setPendingImage(null)
+    setShowHistory(false)
+  }
+
+  async function loadSession(id: string) {
+    const { data } = await supabase.from('chat_sessions').select('*').eq('id', id).single()
+    if (data) {
+      setSessionId(data.id)
+      setMessages(deserializeMessages(data.messages as []))
+      setShowHistory(false)
+    }
   }
 
   function handleKeyDown(e: React.KeyboardEvent) {
@@ -278,13 +365,37 @@ export default function ChatbotPage() {
           <h1 className="text-xl font-bold text-stone-800">Qualification client</h1>
           <p className="text-xs text-muted">Chatbot de qualification avant devis</p>
         </div>
-        <button
-          onClick={reset}
-          className="flex items-center gap-1.5 text-xs text-muted hover:text-stone-700 transition px-3 py-2 rounded-xl border border-border bg-surface"
-        >
-          <RotateCcw size={14} /> Nouvelle session
-        </button>
+        <div className="flex gap-2">
+          {recentSessions.length > 0 && (
+            <button
+              onClick={() => setShowHistory(!showHistory)}
+              className="flex items-center gap-1.5 text-xs text-muted hover:text-stone-700 transition px-3 py-2 rounded-xl border border-border bg-surface"
+            >
+              <Clock size={14} /> Historique
+            </button>
+          )}
+          <button
+            onClick={reset}
+            className="flex items-center gap-1.5 text-xs text-muted hover:text-stone-700 transition px-3 py-2 rounded-xl border border-border bg-surface"
+          >
+            <RotateCcw size={14} /> Nouveau
+          </button>
+        </div>
       </div>
+
+      {/* Sessions history panel */}
+      {showHistory && (
+        <div className="bg-surface border border-border rounded-xl p-3 mb-3 space-y-2">
+          <p className="text-xs font-semibold text-muted uppercase tracking-wide">Sessions récentes</p>
+          {recentSessions.map(s => (
+            <button key={s.id} onClick={() => loadSession(s.id)}
+              className={`w-full text-left px-3 py-2 rounded-xl border text-sm transition hover:border-primary/30 ${s.id === sessionId ? 'border-primary/30 bg-primary-light' : 'border-border'}`}>
+              <p className="text-stone-700 truncate">{s.preview || 'Session sans texte'}</p>
+              <p className="text-xs text-muted mt-0.5">{formatDate(s.created_at)}</p>
+            </button>
+          ))}
+        </div>
+      )}
 
       {/* Client selector */}
       <div className="mb-3">
