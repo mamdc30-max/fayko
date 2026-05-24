@@ -14,13 +14,13 @@ export default function ParametresPage() {
   const [settings, setSettings] = useState<Settings>({ id: 1, acompte_pourcentage: 50 })
   const [loading, setLoading] = useState(true)
 
-  // New forfait form
-  const [newForfait, setNewForfait] = useState({ nom: '', description: '', prix_ht: '' })
+  // Forfait / article form
+  const [newForfait, setNewForfait] = useState({ nom: '', description: '', prix_ht: '', categorie: '' })
   const [addingForfait, setAddingForfait] = useState(false)
   const [editingForfait, setEditingForfait] = useState<string | null>(null)
-  const [editForfait, setEditForfait] = useState({ nom: '', description: '', prix_ht: '' })
+  const [editForfait, setEditForfait] = useState({ nom: '', description: '', prix_ht: '', categorie: '' })
 
-  // New element form
+  // Element form (admin only)
   const [newElement, setNewElement] = useState({ nom: '', prix: '' })
   const [addingElement, setAddingElement] = useState(false)
   const [editingElement, setEditingElement] = useState<string | null>(null)
@@ -28,11 +28,20 @@ export default function ParametresPage() {
 
   const [savedSettings, setSavedSettings] = useState(false)
 
+  // Catalogue groupé par catégorie (BtoC)
+  const forfaitsByCategory = forfaits.reduce((acc, f) => {
+    const cat = f.categorie || 'Général'
+    if (!acc[cat]) acc[cat] = []
+    acc[cat].push(f)
+    return acc
+  }, {} as Record<string, Forfait[]>)
+  const uniqueCategories = Object.keys(forfaitsByCategory).sort()
+
   useEffect(() => {
     async function load() {
       const [{ data: f }, { data: e }, { data: s }] = await Promise.all([
-        supabase.from('forfaits').select('*').order('created_at'),
-        supabase.from('elements_carte').select('*').order('created_at'),
+        supabase.from('forfaits').select('*').order('categorie').order('nom'),
+        supabase.from('elements_carte').select('*').order('nom'),
         supabase.from('settings').select('*').single(),
       ])
       if (f) setForfaits(f)
@@ -43,15 +52,19 @@ export default function ParametresPage() {
     load()
   }, [])
 
-  // Forfaits CRUD
   async function addForfait() {
     if (!newForfait.nom || !newForfait.prix_ht) return
     const { data } = await supabase.from('forfaits').insert({
       nom: newForfait.nom,
       description: newForfait.description || null,
       prix_ht: parseFloat(newForfait.prix_ht),
+      categorie: newForfait.categorie || (isAdmin ? null : 'Général'),
     }).select().single()
-    if (data) { setForfaits(prev => [...prev, data]); setNewForfait({ nom: '', description: '', prix_ht: '' }); setAddingForfait(false) }
+    if (data) {
+      setForfaits(prev => [...prev, data])
+      setNewForfait({ nom: '', description: '', prix_ht: '', categorie: '' })
+      setAddingForfait(false)
+    }
   }
 
   async function updateForfait(id: string) {
@@ -59,8 +72,15 @@ export default function ParametresPage() {
       nom: editForfait.nom,
       description: editForfait.description || null,
       prix_ht: parseFloat(editForfait.prix_ht),
+      categorie: editForfait.categorie || null,
     }).eq('id', id)
-    setForfaits(prev => prev.map(f => f.id === id ? { ...f, ...editForfait, prix_ht: parseFloat(editForfait.prix_ht) } : f))
+    setForfaits(prev => prev.map(f => f.id === id ? {
+      ...f,
+      nom: editForfait.nom,
+      description: editForfait.description || null,
+      prix_ht: parseFloat(editForfait.prix_ht),
+      categorie: editForfait.categorie || null,
+    } : f))
     setEditingForfait(null)
   }
 
@@ -69,7 +89,6 @@ export default function ParametresPage() {
     setForfaits(prev => prev.filter(f => f.id !== id))
   }
 
-  // Éléments CRUD
   async function addElement() {
     if (!newElement.nom || !newElement.prix) return
     const { data } = await supabase.from('elements_carte').insert({
@@ -105,7 +124,9 @@ export default function ParametresPage() {
     <div className="space-y-6">
       <div>
         <h1 className="text-xl font-bold text-stone-800">Paramètres</h1>
-        <p className="text-xs text-muted mt-0.5">Gère ton catalogue, tes articles et tes tarifs</p>
+        <p className="text-xs text-muted mt-0.5">
+          {isAdmin ? 'Gère ton catalogue, tes éléments et tes tarifs' : 'Configure ton catalogue de produits'}
+        </p>
       </div>
 
       {/* Acompte */}
@@ -114,9 +135,7 @@ export default function ParametresPage() {
         <div className="flex items-center gap-3">
           <div className="flex-1 relative">
             <input
-              type="number"
-              min={1}
-              max={100}
+              type="number" min={1} max={100}
               value={settings.acompte_pourcentage}
               onChange={e => setSettings(prev => ({ ...prev, acompte_pourcentage: parseInt(e.target.value) || 50 }))}
               className="w-full border border-border rounded-xl px-4 py-2.5 text-sm bg-beige-50 focus:outline-none focus:ring-2 focus:ring-primary/30 pr-8"
@@ -131,130 +150,243 @@ export default function ParametresPage() {
         </div>
       </section>
 
-      {/* Forfaits */}
-      <section className="bg-surface rounded-2xl border border-border p-4 space-y-3">
-        <div className="flex items-center justify-between">
-          <h2 className="font-semibold text-stone-800 text-sm">{isAdmin ? 'Forfaits' : 'Articles'} ({forfaits.length})</h2>
-          <button onClick={() => setAddingForfait(true)} className="flex items-center gap-1 text-xs text-primary font-medium">
-            <Plus size={14} /> Ajouter
-          </button>
-        </div>
-
-        {addingForfait && (
-          <div className="bg-beige-50 rounded-xl p-3 border border-border space-y-2">
-            <input value={newForfait.nom} onChange={e => setNewForfait(p => ({ ...p, nom: e.target.value }))}
-              placeholder="Nom du forfait *"
-              className="w-full border border-border rounded-xl px-3 py-2 text-sm bg-surface focus:outline-none focus:ring-2 focus:ring-primary/30" />
-            <input value={newForfait.description} onChange={e => setNewForfait(p => ({ ...p, description: e.target.value }))}
-              placeholder="Description (optionnelle)"
-              className="w-full border border-border rounded-xl px-3 py-2 text-sm bg-surface focus:outline-none focus:ring-2 focus:ring-primary/30" />
-            <div className="relative">
-              <input type="number" value={newForfait.prix_ht} onChange={e => setNewForfait(p => ({ ...p, prix_ht: e.target.value }))}
-                placeholder="Prix HT *"
-                className="w-full border border-border rounded-xl px-3 py-2 text-sm bg-surface focus:outline-none focus:ring-2 focus:ring-primary/30 pr-6" />
-              <span className="absolute right-3 top-1/2 -translate-y-1/2 text-muted text-xs">€</span>
+      {/* ========== BtoC : Mon catalogue ========== */}
+      {!isAdmin && (
+        <section className="bg-surface rounded-2xl border border-border p-4 space-y-4">
+          <div className="flex items-center justify-between">
+            <div>
+              <h2 className="font-semibold text-stone-800 text-sm">Mon catalogue</h2>
+              <p className="text-xs text-muted mt-0.5">{forfaits.length} article{forfaits.length !== 1 ? 's' : ''}</p>
             </div>
-            <div className="flex gap-2">
-              <button onClick={addForfait} className="bg-primary text-white text-sm px-4 py-2 rounded-xl font-medium">Ajouter</button>
-              <button onClick={() => { setAddingForfait(false); setNewForfait({ nom: '', description: '', prix_ht: '' }) }}
-                className="text-sm text-muted px-3 py-2"><X size={16} /></button>
-            </div>
+            <button onClick={() => setAddingForfait(true)} className="flex items-center gap-1 text-xs text-primary font-medium">
+              <Plus size={14} /> Ajouter
+            </button>
           </div>
-        )}
 
-        <div className="space-y-2">
-          {forfaits.map(f => editingForfait === f.id ? (
-            <div key={f.id} className="bg-beige-50 rounded-xl p-3 border border-border space-y-2">
-              <input value={editForfait.nom} onChange={e => setEditForfait(p => ({ ...p, nom: e.target.value }))}
-                className="w-full border border-border rounded-xl px-3 py-2 text-sm bg-surface focus:outline-none" />
-              <input value={editForfait.description} onChange={e => setEditForfait(p => ({ ...p, description: e.target.value }))}
-                placeholder="Description"
-                className="w-full border border-border rounded-xl px-3 py-2 text-sm bg-surface focus:outline-none" />
+          {/* Formulaire ajout article */}
+          {addingForfait && (
+            <div className="bg-beige-50 rounded-xl p-3 border border-border space-y-2">
+              <input
+                value={newForfait.categorie}
+                onChange={e => setNewForfait(p => ({ ...p, categorie: e.target.value }))}
+                placeholder="Catégorie (ex : Robes, Sacs, Coaching…)"
+                list="cats-add"
+                className="w-full border border-border rounded-xl px-3 py-2 text-sm bg-surface focus:outline-none focus:ring-2 focus:ring-primary/30"
+              />
+              <datalist id="cats-add">
+                {uniqueCategories.map(c => <option key={c} value={c} />)}
+              </datalist>
+              <input
+                value={newForfait.nom}
+                onChange={e => setNewForfait(p => ({ ...p, nom: e.target.value }))}
+                placeholder="Nom de l'article *"
+                className="w-full border border-border rounded-xl px-3 py-2 text-sm bg-surface focus:outline-none focus:ring-2 focus:ring-primary/30"
+              />
               <div className="relative">
-                <input type="number" value={editForfait.prix_ht} onChange={e => setEditForfait(p => ({ ...p, prix_ht: e.target.value }))}
-                  className="w-full border border-border rounded-xl px-3 py-2 text-sm bg-surface focus:outline-none pr-6" />
+                <input
+                  type="number" value={newForfait.prix_ht}
+                  onChange={e => setNewForfait(p => ({ ...p, prix_ht: e.target.value }))}
+                  placeholder="Prix *"
+                  className="w-full border border-border rounded-xl px-3 py-2 text-sm bg-surface focus:outline-none focus:ring-2 focus:ring-primary/30 pr-6"
+                />
                 <span className="absolute right-3 top-1/2 -translate-y-1/2 text-muted text-xs">€</span>
               </div>
               <div className="flex gap-2">
-                <button onClick={() => updateForfait(f.id)} className="bg-primary text-white text-sm px-4 py-2 rounded-xl font-medium">Enregistrer</button>
-                <button onClick={() => setEditingForfait(null)} className="text-sm text-muted px-3 py-2"><X size={16} /></button>
+                <button onClick={addForfait} className="bg-primary text-white text-sm px-4 py-2 rounded-xl font-medium">Ajouter</button>
+                <button onClick={() => { setAddingForfait(false); setNewForfait({ nom: '', description: '', prix_ht: '', categorie: '' }) }}
+                  className="text-sm text-muted px-3 py-2"><X size={16} /></button>
               </div>
             </div>
-          ) : (
-            <div key={f.id} className="flex items-center justify-between px-3 py-2.5 rounded-xl border border-border hover:border-primary/20 transition">
-              <div className="flex-1 min-w-0">
-                <p className="text-sm font-medium text-stone-800">{f.nom}</p>
-                {f.description && <p className="text-xs text-muted mt-0.5">{f.description}</p>}
-              </div>
-              <div className="flex items-center gap-2 ml-2 shrink-0">
-                <span className="text-sm font-semibold text-primary">{formatPrice(f.prix_ht)}</span>
-                <button onClick={() => { setEditingForfait(f.id); setEditForfait({ nom: f.nom, description: f.description || '', prix_ht: String(f.prix_ht) }) }}
-                  className="p-1 text-muted hover:text-stone-700 transition"><Edit2 size={14} /></button>
-                <button onClick={() => deleteForfait(f.id)} className="p-1 text-muted hover:text-red-500 transition"><Trash2 size={14} /></button>
-              </div>
+          )}
+
+          {/* État vide */}
+          {forfaits.length === 0 && !addingForfait && (
+            <div className="text-center py-8">
+              <p className="text-3xl mb-2">🛍️</p>
+              <p className="text-sm font-medium text-stone-700 mb-1">Ton catalogue est vide</p>
+              <p className="text-xs text-muted">Ajoute tes articles par catégorie — tu pourras les retrouver directement dans tes commandes</p>
+            </div>
+          )}
+
+          {/* Articles groupés par catégorie */}
+          {uniqueCategories.map(cat => (
+            <div key={cat} className="space-y-1.5">
+              <p className="text-[11px] font-semibold text-muted uppercase tracking-wider px-1 mt-2">{cat}</p>
+              {forfaitsByCategory[cat].map(f => editingForfait === f.id ? (
+                <div key={f.id} className="bg-beige-50 rounded-xl p-3 border border-border space-y-2">
+                  <input
+                    value={editForfait.categorie}
+                    onChange={e => setEditForfait(p => ({ ...p, categorie: e.target.value }))}
+                    placeholder="Catégorie"
+                    list="cats-edit"
+                    className="w-full border border-border rounded-xl px-3 py-2 text-sm bg-surface focus:outline-none"
+                  />
+                  <datalist id="cats-edit">
+                    {uniqueCategories.map(c => <option key={c} value={c} />)}
+                  </datalist>
+                  <input
+                    value={editForfait.nom}
+                    onChange={e => setEditForfait(p => ({ ...p, nom: e.target.value }))}
+                    className="w-full border border-border rounded-xl px-3 py-2 text-sm bg-surface focus:outline-none"
+                  />
+                  <div className="relative">
+                    <input
+                      type="number" value={editForfait.prix_ht}
+                      onChange={e => setEditForfait(p => ({ ...p, prix_ht: e.target.value }))}
+                      className="w-full border border-border rounded-xl px-3 py-2 text-sm bg-surface focus:outline-none pr-6"
+                    />
+                    <span className="absolute right-3 top-1/2 -translate-y-1/2 text-muted text-xs">€</span>
+                  </div>
+                  <div className="flex gap-2">
+                    <button onClick={() => updateForfait(f.id)} className="bg-primary text-white text-sm px-4 py-2 rounded-xl font-medium">Enregistrer</button>
+                    <button onClick={() => setEditingForfait(null)} className="text-sm text-muted px-3 py-2"><X size={16} /></button>
+                  </div>
+                </div>
+              ) : (
+                <div key={f.id} className="flex items-center justify-between px-3 py-2.5 rounded-xl border border-border hover:border-primary/20 transition">
+                  <p className="text-sm font-medium text-stone-800 flex-1 min-w-0 truncate">{f.nom}</p>
+                  <div className="flex items-center gap-2 ml-2 shrink-0">
+                    <span className="text-sm font-semibold text-primary">{formatPrice(f.prix_ht)}</span>
+                    <button
+                      onClick={() => { setEditingForfait(f.id); setEditForfait({ nom: f.nom, description: f.description || '', prix_ht: String(f.prix_ht), categorie: f.categorie || '' }) }}
+                      className="p-1 text-muted hover:text-stone-700 transition"><Edit2 size={14} /></button>
+                    <button onClick={() => deleteForfait(f.id)} className="p-1 text-muted hover:text-red-500 transition"><Trash2 size={14} /></button>
+                  </div>
+                </div>
+              ))}
             </div>
           ))}
-          {forfaits.length === 0 && <p className="text-sm text-muted py-2">Aucun forfait configuré</p>}
-        </div>
-      </section>
+        </section>
+      )}
 
-      {/* Éléments à la carte */}
-      <section className="bg-surface rounded-2xl border border-border p-4 space-y-3">
-        <div className="flex items-center justify-between">
-          <h2 className="font-semibold text-stone-800 text-sm">{isAdmin ? 'Éléments à la carte' : 'Options'} ({elements.length})</h2>
-          <button onClick={() => setAddingElement(true)} className="flex items-center gap-1 text-xs text-primary font-medium">
-            <Plus size={14} /> Ajouter
-          </button>
-        </div>
-
-        {addingElement && (
-          <div className="bg-beige-50 rounded-xl p-3 border border-border space-y-2">
-            <input value={newElement.nom} onChange={e => setNewElement(p => ({ ...p, nom: e.target.value }))}
-              placeholder="Nom de l'élément *"
-              className="w-full border border-border rounded-xl px-3 py-2 text-sm bg-surface focus:outline-none focus:ring-2 focus:ring-primary/30" />
-            <div className="relative">
-              <input type="number" value={newElement.prix} onChange={e => setNewElement(p => ({ ...p, prix: e.target.value }))}
-                placeholder="Prix *"
-                className="w-full border border-border rounded-xl px-3 py-2 text-sm bg-surface focus:outline-none focus:ring-2 focus:ring-primary/30 pr-6" />
-              <span className="absolute right-3 top-1/2 -translate-y-1/2 text-muted text-xs">€</span>
-            </div>
-            <div className="flex gap-2">
-              <button onClick={addElement} className="bg-primary text-white text-sm px-4 py-2 rounded-xl font-medium">Ajouter</button>
-              <button onClick={() => { setAddingElement(false); setNewElement({ nom: '', prix: '' }) }}
-                className="text-sm text-muted px-3 py-2"><X size={16} /></button>
-            </div>
+      {/* ========== ADMIN : Forfaits ========== */}
+      {isAdmin && (
+        <section className="bg-surface rounded-2xl border border-border p-4 space-y-3">
+          <div className="flex items-center justify-between">
+            <h2 className="font-semibold text-stone-800 text-sm">Forfaits ({forfaits.length})</h2>
+            <button onClick={() => setAddingForfait(true)} className="flex items-center gap-1 text-xs text-primary font-medium">
+              <Plus size={14} /> Ajouter
+            </button>
           </div>
-        )}
 
-        <div className="space-y-2">
-          {elements.map(e => editingElement === e.id ? (
-            <div key={e.id} className="bg-beige-50 rounded-xl p-3 border border-border space-y-2">
-              <input value={editElement.nom} onChange={ev => setEditElement(p => ({ ...p, nom: ev.target.value }))}
-                className="w-full border border-border rounded-xl px-3 py-2 text-sm bg-surface focus:outline-none" />
+          {addingForfait && (
+            <div className="bg-beige-50 rounded-xl p-3 border border-border space-y-2">
+              <input value={newForfait.nom} onChange={e => setNewForfait(p => ({ ...p, nom: e.target.value }))}
+                placeholder="Nom du forfait *"
+                className="w-full border border-border rounded-xl px-3 py-2 text-sm bg-surface focus:outline-none focus:ring-2 focus:ring-primary/30" />
+              <input value={newForfait.description} onChange={e => setNewForfait(p => ({ ...p, description: e.target.value }))}
+                placeholder="Description (optionnelle)"
+                className="w-full border border-border rounded-xl px-3 py-2 text-sm bg-surface focus:outline-none focus:ring-2 focus:ring-primary/30" />
               <div className="relative">
-                <input type="number" value={editElement.prix} onChange={ev => setEditElement(p => ({ ...p, prix: ev.target.value }))}
-                  className="w-full border border-border rounded-xl px-3 py-2 text-sm bg-surface focus:outline-none pr-6" />
+                <input type="number" value={newForfait.prix_ht} onChange={e => setNewForfait(p => ({ ...p, prix_ht: e.target.value }))}
+                  placeholder="Prix HT *"
+                  className="w-full border border-border rounded-xl px-3 py-2 text-sm bg-surface focus:outline-none focus:ring-2 focus:ring-primary/30 pr-6" />
                 <span className="absolute right-3 top-1/2 -translate-y-1/2 text-muted text-xs">€</span>
               </div>
               <div className="flex gap-2">
-                <button onClick={() => updateElement(e.id)} className="bg-primary text-white text-sm px-4 py-2 rounded-xl font-medium">Enregistrer</button>
-                <button onClick={() => setEditingElement(null)} className="text-sm text-muted px-3 py-2"><X size={16} /></button>
+                <button onClick={addForfait} className="bg-primary text-white text-sm px-4 py-2 rounded-xl font-medium">Ajouter</button>
+                <button onClick={() => { setAddingForfait(false); setNewForfait({ nom: '', description: '', prix_ht: '', categorie: '' }) }}
+                  className="text-sm text-muted px-3 py-2"><X size={16} /></button>
               </div>
             </div>
-          ) : (
-            <div key={e.id} className="flex items-center justify-between px-3 py-2.5 rounded-xl border border-border hover:border-primary/20 transition">
-              <p className="text-sm font-medium text-stone-800 flex-1 min-w-0 truncate">{e.nom}</p>
-              <div className="flex items-center gap-2 ml-2 shrink-0">
-                <span className="text-sm font-semibold text-primary">{formatPrice(e.prix)}</span>
-                <button onClick={() => { setEditingElement(e.id); setEditElement({ nom: e.nom, prix: String(e.prix) }) }}
-                  className="p-1 text-muted hover:text-stone-700 transition"><Edit2 size={14} /></button>
-                <button onClick={() => deleteElement(e.id)} className="p-1 text-muted hover:text-red-500 transition"><Trash2 size={14} /></button>
+          )}
+
+          <div className="space-y-2">
+            {forfaits.map(f => editingForfait === f.id ? (
+              <div key={f.id} className="bg-beige-50 rounded-xl p-3 border border-border space-y-2">
+                <input value={editForfait.nom} onChange={e => setEditForfait(p => ({ ...p, nom: e.target.value }))}
+                  className="w-full border border-border rounded-xl px-3 py-2 text-sm bg-surface focus:outline-none" />
+                <input value={editForfait.description} onChange={e => setEditForfait(p => ({ ...p, description: e.target.value }))}
+                  placeholder="Description"
+                  className="w-full border border-border rounded-xl px-3 py-2 text-sm bg-surface focus:outline-none" />
+                <div className="relative">
+                  <input type="number" value={editForfait.prix_ht} onChange={e => setEditForfait(p => ({ ...p, prix_ht: e.target.value }))}
+                    className="w-full border border-border rounded-xl px-3 py-2 text-sm bg-surface focus:outline-none pr-6" />
+                  <span className="absolute right-3 top-1/2 -translate-y-1/2 text-muted text-xs">€</span>
+                </div>
+                <div className="flex gap-2">
+                  <button onClick={() => updateForfait(f.id)} className="bg-primary text-white text-sm px-4 py-2 rounded-xl font-medium">Enregistrer</button>
+                  <button onClick={() => setEditingForfait(null)} className="text-sm text-muted px-3 py-2"><X size={16} /></button>
+                </div>
+              </div>
+            ) : (
+              <div key={f.id} className="flex items-center justify-between px-3 py-2.5 rounded-xl border border-border hover:border-primary/20 transition">
+                <div className="flex-1 min-w-0">
+                  <p className="text-sm font-medium text-stone-800">{f.nom}</p>
+                  {f.description && <p className="text-xs text-muted mt-0.5">{f.description}</p>}
+                </div>
+                <div className="flex items-center gap-2 ml-2 shrink-0">
+                  <span className="text-sm font-semibold text-primary">{formatPrice(f.prix_ht)}</span>
+                  <button onClick={() => { setEditingForfait(f.id); setEditForfait({ nom: f.nom, description: f.description || '', prix_ht: String(f.prix_ht), categorie: f.categorie || '' }) }}
+                    className="p-1 text-muted hover:text-stone-700 transition"><Edit2 size={14} /></button>
+                  <button onClick={() => deleteForfait(f.id)} className="p-1 text-muted hover:text-red-500 transition"><Trash2 size={14} /></button>
+                </div>
+              </div>
+            ))}
+            {forfaits.length === 0 && <p className="text-sm text-muted py-2">Aucun forfait configuré</p>}
+          </div>
+        </section>
+      )}
+
+      {/* ========== ADMIN : Éléments à la carte ========== */}
+      {isAdmin && (
+        <section className="bg-surface rounded-2xl border border-border p-4 space-y-3">
+          <div className="flex items-center justify-between">
+            <h2 className="font-semibold text-stone-800 text-sm">Éléments à la carte ({elements.length})</h2>
+            <button onClick={() => setAddingElement(true)} className="flex items-center gap-1 text-xs text-primary font-medium">
+              <Plus size={14} /> Ajouter
+            </button>
+          </div>
+
+          {addingElement && (
+            <div className="bg-beige-50 rounded-xl p-3 border border-border space-y-2">
+              <input value={newElement.nom} onChange={e => setNewElement(p => ({ ...p, nom: e.target.value }))}
+                placeholder="Nom de l'élément *"
+                className="w-full border border-border rounded-xl px-3 py-2 text-sm bg-surface focus:outline-none focus:ring-2 focus:ring-primary/30" />
+              <div className="relative">
+                <input type="number" value={newElement.prix} onChange={e => setNewElement(p => ({ ...p, prix: e.target.value }))}
+                  placeholder="Prix *"
+                  className="w-full border border-border rounded-xl px-3 py-2 text-sm bg-surface focus:outline-none focus:ring-2 focus:ring-primary/30 pr-6" />
+                <span className="absolute right-3 top-1/2 -translate-y-1/2 text-muted text-xs">€</span>
+              </div>
+              <div className="flex gap-2">
+                <button onClick={addElement} className="bg-primary text-white text-sm px-4 py-2 rounded-xl font-medium">Ajouter</button>
+                <button onClick={() => { setAddingElement(false); setNewElement({ nom: '', prix: '' }) }}
+                  className="text-sm text-muted px-3 py-2"><X size={16} /></button>
               </div>
             </div>
-          ))}
-          {elements.length === 0 && <p className="text-sm text-muted py-2">Aucun élément configuré</p>}
-        </div>
-      </section>
+          )}
+
+          <div className="space-y-2">
+            {elements.map(e => editingElement === e.id ? (
+              <div key={e.id} className="bg-beige-50 rounded-xl p-3 border border-border space-y-2">
+                <input value={editElement.nom} onChange={ev => setEditElement(p => ({ ...p, nom: ev.target.value }))}
+                  className="w-full border border-border rounded-xl px-3 py-2 text-sm bg-surface focus:outline-none" />
+                <div className="relative">
+                  <input type="number" value={editElement.prix} onChange={ev => setEditElement(p => ({ ...p, prix: ev.target.value }))}
+                    className="w-full border border-border rounded-xl px-3 py-2 text-sm bg-surface focus:outline-none pr-6" />
+                  <span className="absolute right-3 top-1/2 -translate-y-1/2 text-muted text-xs">€</span>
+                </div>
+                <div className="flex gap-2">
+                  <button onClick={() => updateElement(e.id)} className="bg-primary text-white text-sm px-4 py-2 rounded-xl font-medium">Enregistrer</button>
+                  <button onClick={() => setEditingElement(null)} className="text-sm text-muted px-3 py-2"><X size={16} /></button>
+                </div>
+              </div>
+            ) : (
+              <div key={e.id} className="flex items-center justify-between px-3 py-2.5 rounded-xl border border-border hover:border-primary/20 transition">
+                <p className="text-sm font-medium text-stone-800 flex-1 min-w-0 truncate">{e.nom}</p>
+                <div className="flex items-center gap-2 ml-2 shrink-0">
+                  <span className="text-sm font-semibold text-primary">{formatPrice(e.prix)}</span>
+                  <button onClick={() => { setEditingElement(e.id); setEditElement({ nom: e.nom, prix: String(e.prix) }) }}
+                    className="p-1 text-muted hover:text-stone-700 transition"><Edit2 size={14} /></button>
+                  <button onClick={() => deleteElement(e.id)} className="p-1 text-muted hover:text-red-500 transition"><Trash2 size={14} /></button>
+                </div>
+              </div>
+            ))}
+            {elements.length === 0 && <p className="text-sm text-muted py-2">Aucun élément configuré</p>}
+          </div>
+        </section>
+      )}
     </div>
   )
 }

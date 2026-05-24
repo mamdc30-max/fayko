@@ -69,6 +69,14 @@ export default function NewDevisPage() {
     `${c.prenom} ${c.nom}`.toLowerCase().includes(clientSearch.toLowerCase())
   )
 
+  // Catalogue groupé par catégorie (BtoC)
+  const forfaitsByCategory = forfaits.reduce((acc, f) => {
+    const cat = f.categorie || 'Général'
+    if (!acc[cat]) acc[cat] = []
+    acc[cat].push(f)
+    return acc
+  }, {} as Record<string, Forfait[]>)
+
   function addForfait(f: Forfait) {
     setLignes(prev => [...prev, { id: newId(), type: 'forfait', libelle: f.nom, description: f.description || null, prix: f.prix_ht, quantite: 1, ref_id: f.id }])
     setOpenSection(null)
@@ -312,35 +320,65 @@ export default function NewDevisPage() {
 
         {/* Add buttons */}
         <div className="space-y-2">
-          {(['forfaits', 'elements', 'libre'] as const).map(section => (
-            <div key={section}>
+          {/* Forfaits / Articles */}
+          <div>
+            <button
+              onClick={() => setOpenSection(openSection === 'forfaits' ? null : 'forfaits')}
+              className="flex items-center gap-2 text-sm text-primary font-medium"
+            >
+              <Plus size={15} />
+              {isAdmin ? 'Ajouter un forfait' : 'Ajouter un article'}
+              {openSection === 'forfaits' ? <ChevronUp size={14} /> : <ChevronDown size={14} />}
+            </button>
+
+            {openSection === 'forfaits' && (
+              <div className="mt-2 border border-border rounded-xl overflow-hidden">
+                {isAdmin ? (
+                  // Admin : liste plate
+                  forfaits.length === 0
+                    ? <p className="px-4 py-2.5 text-sm text-muted">Aucun forfait configuré</p>
+                    : forfaits.map(f => (
+                      <button key={f.id} onClick={() => addForfait(f)}
+                        className="w-full text-left px-4 py-2.5 hover:bg-beige-50 text-sm border-b border-border last:border-0 flex justify-between">
+                        <span>{f.nom}</span>
+                        <span className="text-primary font-medium">{formatPrice(f.prix_ht)}</span>
+                      </button>
+                    ))
+                ) : (
+                  // BtoC : groupé par catégorie
+                  Object.keys(forfaitsByCategory).length === 0
+                    ? <p className="px-4 py-3 text-sm text-muted">Aucun article — crée ton catalogue dans Paramètres</p>
+                    : Object.entries(forfaitsByCategory).map(([cat, items]) => (
+                      <div key={cat}>
+                        <div className="px-3 py-1.5 bg-beige-100 border-b border-border">
+                          <p className="text-[10px] font-semibold text-muted uppercase tracking-wider">{cat}</p>
+                        </div>
+                        {items.map(f => (
+                          <button key={f.id} onClick={() => addForfait(f)}
+                            className="w-full text-left px-4 py-2.5 hover:bg-beige-50 text-sm border-b border-border last:border-0 flex justify-between">
+                            <span>{f.nom}</span>
+                            <span className="text-primary font-medium">{formatPrice(f.prix_ht)}</span>
+                          </button>
+                        ))}
+                      </div>
+                    ))
+                )}
+              </div>
+            )}
+          </div>
+
+          {/* Éléments — admin uniquement */}
+          {isAdmin && (
+            <div>
               <button
-                onClick={() => setOpenSection(openSection === section ? null : section)}
+                onClick={() => setOpenSection(openSection === 'elements' ? null : 'elements')}
                 className="flex items-center gap-2 text-sm text-primary font-medium"
               >
                 <Plus size={15} />
-                {section === 'forfaits'
-                  ? (isAdmin ? 'Ajouter un forfait' : 'Ajouter un article')
-                  : section === 'elements'
-                  ? (isAdmin ? 'Ajouter un élément' : 'Ajouter une option')
-                  : 'Ajouter une ligne libre'}
-                {openSection === section ? <ChevronUp size={14} /> : <ChevronDown size={14} />}
+                Ajouter un élément
+                {openSection === 'elements' ? <ChevronUp size={14} /> : <ChevronDown size={14} />}
               </button>
-
-              {openSection === section && section === 'forfaits' && (
-                <div className="mt-2 border border-border rounded-xl overflow-hidden">
-                  {forfaits.map(f => (
-                    <button key={f.id} onClick={() => addForfait(f)}
-                      className="w-full text-left px-4 py-2.5 hover:bg-beige-50 text-sm border-b border-border last:border-0 flex justify-between">
-                      <span>{f.nom}</span>
-                      <span className="text-primary font-medium">{formatPrice(f.prix_ht)}</span>
-                    </button>
-                  ))}
-                  {forfaits.length === 0 && <p className="px-4 py-2.5 text-sm text-muted">{isAdmin ? 'Aucun forfait configuré' : 'Aucun article configuré'}</p>}
-                </div>
-              )}
-
-              {openSection === section && section === 'elements' && (
+              {openSection === 'elements' && (
                 <div className="mt-2 border border-border rounded-xl overflow-hidden">
                   {elements.map(e => (
                     <button key={e.id} onClick={() => addElement(e)}
@@ -349,19 +387,30 @@ export default function NewDevisPage() {
                       <span className="text-primary font-medium">{formatPrice(e.prix)}</span>
                     </button>
                   ))}
-                  {elements.length === 0 && <p className="px-4 py-2.5 text-sm text-muted">{isAdmin ? 'Aucun élément configuré' : 'Aucune option configurée'}</p>}
-                </div>
-              )}
-
-              {openSection === section && section === 'libre' && (
-                <div className="mt-2">
-                  <button onClick={addLibre} className="bg-beige-100 text-stone-700 text-sm px-4 py-2 rounded-xl border border-border">
-                    Ajouter une ligne vide
-                  </button>
+                  {elements.length === 0 && <p className="px-4 py-2.5 text-sm text-muted">Aucun élément configuré</p>}
                 </div>
               )}
             </div>
-          ))}
+          )}
+
+          {/* Ligne libre */}
+          <div>
+            <button
+              onClick={() => setOpenSection(openSection === 'libre' ? null : 'libre')}
+              className="flex items-center gap-2 text-sm text-primary font-medium"
+            >
+              <Plus size={15} />
+              Ajouter une ligne libre
+              {openSection === 'libre' ? <ChevronUp size={14} /> : <ChevronDown size={14} />}
+            </button>
+            {openSection === 'libre' && (
+              <div className="mt-2">
+                <button onClick={addLibre} className="bg-beige-100 text-stone-700 text-sm px-4 py-2 rounded-xl border border-border">
+                  Ajouter une ligne vide
+                </button>
+              </div>
+            )}
+          </div>
         </div>
       </section>
 

@@ -20,6 +20,7 @@ export interface Forfait {
   nom: string
   description: string | null
   prix_ht: number
+  categorie: string | null
   created_at: string
 }
 
