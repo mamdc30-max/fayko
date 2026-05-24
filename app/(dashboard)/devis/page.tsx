@@ -3,14 +3,10 @@
 import { useState, useEffect } from 'react'
 import { useRouter } from 'next/navigation'
 import { supabase } from '@/lib/supabase'
-import { calcTotal, formatPrice, generateDevisText, copyToClipboard } from '@/lib/utils'
+import { cn, calcTotal, formatPrice, generateDevisText, copyToClipboard } from '@/lib/utils'
 import type { Client, Forfait, ElementCarte, DevisFormLigne, Settings } from '@/lib/types'
 import { Plus, Trash2, Copy, Check, ChevronDown, ChevronUp, Search, MessageCircle, History } from 'lucide-react'
-import { cn } from '@/lib/utils'
 import { useUserContext } from '@/lib/user-context'
-
-let lineCounter = 0
-function newId() { return `line-${++lineCounter}` }
 
 export default function NewDevisPage() {
   const router = useRouter()
@@ -64,7 +60,7 @@ export default function NewDevisPage() {
       modeReglement, settings.acompte_pourcentage, isAdmin
     )
     setPreview(text)
-  }, [selectedClient, lignes, remiseType, remiseValeur, modeReglement, settings])
+  }, [selectedClient, lignes, remiseType, remiseValeur, modeReglement, settings, isAdmin])
 
   const filteredClients = clients.filter(c =>
     `${c.prenom} ${c.nom}`.toLowerCase().includes(clientSearch.toLowerCase())
@@ -79,17 +75,17 @@ export default function NewDevisPage() {
   }, {} as Record<string, Forfait[]>)
 
   function addForfait(f: Forfait) {
-    setLignes(prev => [...prev, { id: newId(), type: 'forfait', libelle: f.nom, description: f.description || null, prix: f.prix_ht, quantite: 1, ref_id: f.id }])
+    setLignes(prev => [...prev, { id: crypto.randomUUID(), type: 'forfait', libelle: f.nom, description: f.description || null, prix: f.prix_ht, quantite: 1, ref_id: f.id }])
     setOpenSection(null)
   }
 
   function addElement(e: ElementCarte) {
-    setLignes(prev => [...prev, { id: newId(), type: 'element', libelle: e.nom, prix: e.prix, quantite: 1, ref_id: e.id }])
+    setLignes(prev => [...prev, { id: crypto.randomUUID(), type: 'element', libelle: e.nom, prix: e.prix, quantite: 1, ref_id: e.id }])
     setOpenSection(null)
   }
 
   function addLibre() {
-    setLignes(prev => [...prev, { id: newId(), type: 'libre', libelle: '', prix: 0, quantite: 1 }])
+    setLignes(prev => [...prev, { id: crypto.randomUUID(), type: 'libre', libelle: '', prix: 0, quantite: 1 }])
     setOpenSection(null)
   }
 

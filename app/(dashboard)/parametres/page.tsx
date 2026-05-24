@@ -139,9 +139,9 @@ export default function ParametresPage() {
   return (
     <div className="space-y-6">
       <div>
-        <h1 className="text-xl font-bold text-stone-800">Paramètres</h1>
+        <h1 className="text-xl font-bold text-stone-800">{isAdmin ? 'Paramètres' : 'Mon catalogue'}</h1>
         <p className="text-xs text-muted mt-0.5">
-          {isAdmin ? 'Gère ton catalogue, tes éléments et tes tarifs' : 'Configure ton catalogue de produits'}
+          {isAdmin ? 'Gère ton catalogue, tes éléments et tes tarifs' : 'Configure tes articles et tes messages WhatsApp'}
         </p>
       </div>
 

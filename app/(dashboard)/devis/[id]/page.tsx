@@ -10,9 +10,6 @@ import { cn } from '@/lib/utils'
 import Link from 'next/link'
 import { useUserContext } from '@/lib/user-context'
 
-let lc = 0
-function newId() { return `l-${++lc}` }
-
 export default function DevisFichePage() {
   const { id } = useParams<{ id: string }>()
   const router = useRouter()
@@ -266,7 +263,7 @@ export default function DevisFichePage() {
           </div>
         ))}
         <button
-          onClick={() => setLignes(prev => [...prev, { id: newId(), type: 'libre', libelle: '', prix: 0, quantite: 1 }])}
+          onClick={() => setLignes(prev => [...prev, { id: crypto.randomUUID(), type: 'libre', libelle: '', prix: 0, quantite: 1 }])}
           className="text-sm text-primary font-medium"
         >
           {isAdmin ? '+ Ajouter un élément' : '+ Ajouter un article'}

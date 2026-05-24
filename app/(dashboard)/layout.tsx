@@ -34,8 +34,7 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
     { href: '/parametres', label: 'Catalogue', icon: Package },
   ]
 
-  const visibleNavItems = navItems
-  const visibleMobileNav = visibleNavItems.slice(0, 5)
+  const mobileNavItems = navItems.slice(0, 5)
 
   useEffect(() => {
     supabase.auth.getSession().then(({ data }) => {
@@ -75,7 +74,7 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
   if (checking) {
     return (
       <div className="min-h-screen bg-beige flex items-center justify-center">
-        <div className="text-primary font-bold text-2xl animate-pulse">✨</div>
+        <div className="text-primary font-bold text-xl animate-pulse">✨ Fayko</div>
       </div>
     )
   }
@@ -85,10 +84,10 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
       {/* Desktop sidebar */}
       <aside className="hidden md:flex fixed left-0 top-0 h-full w-56 bg-surface border-r border-border flex-col z-30">
         <div className="p-6 border-b border-border">
-          <span className="text-2xl font-bold text-primary">✨</span>
+          <span className="text-xl font-bold text-primary">✨ Fayko</span>
         </div>
         <nav className="flex-1 p-3 space-y-1 overflow-y-auto">
-          {visibleNavItems.map(({ href, label, icon: Icon }) => (
+          {navItems.map(({ href, label, icon: Icon }) => (
             <Link
               key={href}
               href={href}
@@ -121,7 +120,7 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
 
       {/* Mobile header */}
       <header className="md:hidden fixed top-0 left-0 right-0 bg-surface border-b border-border z-30 px-4 h-14 flex items-center justify-between">
-        <span className="text-xl font-bold text-primary">✨</span>
+        <span className="text-lg font-bold text-primary">✨ Fayko</span>
         <button onClick={() => setMenuOpen(!menuOpen)} className="p-1 text-muted">
           {menuOpen ? <X size={22} /> : <Menu size={22} />}
         </button>
@@ -131,7 +130,7 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
       {menuOpen && (
         <div className="md:hidden fixed inset-0 bg-surface z-20 pt-14">
           <nav className="p-4 space-y-1">
-            {visibleNavItems.map(({ href, label, icon: Icon }) => (
+            {navItems.map(({ href, label, icon: Icon }) => (
               <Link
                 key={href}
                 href={href}
@@ -176,7 +175,7 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
 
       {/* Mobile bottom navigation */}
       <nav className="md:hidden fixed bottom-0 left-0 right-0 bg-surface border-t border-border z-30 flex">
-        {visibleMobileNav.map(({ href, label, icon: Icon }) => (
+        {mobileNavItems.map(({ href, label, icon: Icon }) => (
           <Link
             key={href}
             href={href}

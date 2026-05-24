@@ -26,18 +26,18 @@ export default function RelancesPage() {
       const [{ data: d }, { data: t }, { data: s }] = await Promise.all([
         supabase.from('devis').select('*, clients(*), relances(*)').eq('statut', 'Envoyé').lt('created_at', sevenDaysAgo.toISOString()).order('created_at'),
         supabase.from('templates').select('*').eq('type', 'relance').single(),
-        supabase.from('settings').select('*').eq('id', 1).single(),
+        supabase.from('settings').select('*').single(),
       ])
       if (d) {
         const pending: DevisAvecClient[] = []
-        const done: DevisAvecClient[] = []
+        const effectueesList: DevisAvecClient[] = []
         ;(d as (DevisAvecClient & { relances: { effectuee: boolean }[] })[]).forEach(item => {
           const hasEffectuee = item.relances?.some(r => r.effectuee)
-          if (hasEffectuee) done.push(item)
+          if (hasEffectuee) effectueesList.push(item)
           else pending.push(item)
         })
         setRelances(pending)
-        setEffectuees(done)
+        setEffectuees(effectueesList)
       }
       if (t) setTemplate(t)
       if (s) setSettings(s)
