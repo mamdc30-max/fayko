@@ -147,10 +147,12 @@ export default function NewDevisPage() {
   }
 
   async function handleWhatsApp() {
-    if (!selectedClient?.whatsapp) return
+    if (!selectedClient?.whatsapp || !canCopy || saving) return
     setSaving(true)
     try {
       await saveDevis()
+      const url = `https://wa.me/${selectedClient.whatsapp.replace(/\D/g, '')}?text=${encodeURIComponent(preview)}`
+      window.open(url, '_blank')
       setCopied(true)
     } finally {
       setSaving(false)
@@ -170,7 +172,7 @@ export default function NewDevisPage() {
 
   const { total } = calcTotal(lignes, remiseType || null, remiseValeur ? parseFloat(remiseValeur) : null)
   const acompte = total * settings.acompte_pourcentage / 100
-  const canCopy = selectedClient && titre && lignes.length > 0
+  const canCopy = !!selectedClient && lignes.length > 0
 
   return (
     <div className="space-y-5">
@@ -234,8 +236,10 @@ export default function NewDevisPage() {
             <div className="flex gap-2">
               <button
                 onClick={() => {
-                  if (newClient.prenom && newClient.nom)
+                  if (newClient.prenom && newClient.nom) {
                     setSelectedClient({ id: 'new', ...newClient, marque: null, derniere_synthese: null, derniere_synthese_at: null, created_at: '' })
+                    setShowClientForm(false)
+                  }
                 }}
                 className="bg-primary text-white text-sm px-4 py-2 rounded-xl font-medium"
               >
@@ -249,8 +253,12 @@ export default function NewDevisPage() {
         {selectedClient && (
           <div className="flex items-center justify-between bg-primary-light rounded-xl px-3 py-2.5">
             <div>
-              <p className="font-medium text-sm text-stone-800">{selectedClient.prenom} {selectedClient.nom}</p>
-              {selectedClient.marque && <p className="text-xs text-primary font-medium">{selectedClient.marque}</p>}
+              <div className="flex items-center gap-2">
+                <p className="font-medium text-sm text-stone-800">{selectedClient.prenom} {selectedClient.nom}</p>
+                {selectedClient.id === 'new' && (
+                  <span className="text-[10px] font-semibold bg-green-100 text-green-700 px-1.5 py-0.5 rounded-full">Nouveau ✓</span>
+                )}
+              </div>
               {selectedClient.whatsapp && <p className="text-xs text-muted">{selectedClient.whatsapp}</p>}
             </div>
             <button onClick={() => setSelectedClient(null)} className="text-xs text-muted hover:text-stone-700">Changer</button>
@@ -500,21 +508,19 @@ export default function NewDevisPage() {
           {selectedClient?.whatsapp ? (
             <>
               {/* Primary: WhatsApp */}
-              <a
-                onClick={async (e) => { e.preventDefault(); if (canCopy && !saving) await handleWhatsApp() }}
-                href={canCopy ? `https://wa.me/${selectedClient.whatsapp.replace(/\D/g, '')}?text=${encodeURIComponent(preview)}` : '#'}
-                target="_blank"
-                rel="noopener noreferrer"
+              <button
+                onClick={handleWhatsApp}
+                disabled={!canCopy || saving}
                 className={cn(
                   'flex items-center justify-center gap-2 w-full py-4 rounded-2xl font-bold text-base transition',
-                  canCopy
-                    ? 'bg-[#25D366] text-white hover:bg-[#1ebe5d] cursor-pointer'
-                    : 'bg-beige-200 text-muted cursor-not-allowed pointer-events-none'
+                  canCopy && !saving
+                    ? 'bg-[#25D366] text-white hover:bg-[#1ebe5d]'
+                    : 'bg-beige-200 text-muted cursor-not-allowed'
                 )}
               >
                 <MessageCircle size={20} />
                 {saving ? 'Enregistrement…' : 'Envoyer sur WhatsApp'}
-              </a>
+              </button>
               {/* Secondary: Copy */}
               {canCopy && (
                 <button onClick={handleCopy}
@@ -547,25 +553,15 @@ export default function NewDevisPage() {
           )}
           {!canCopy && (
             <p className="text-center text-xs text-muted">
-              Sélectionne un client, ajoute un titre et au moins un élément
+              Sélectionne un client et ajoute au moins un article
             </p>
           )}
         </div>
       ) : (
         <div className="space-y-3">
-          <div className="flex items-center justify-center gap-2 w-full py-3.5 rounded-2xl bg-green-100 text-green-700 font-semibold text-sm">
-            <Check size={18} /> {isAdmin ? 'Devis enregistré !' : 'Commande enregistrée !'}
+          <div className="flex items-center justify-center gap-2 w-full py-4 rounded-2xl bg-green-100 text-green-700 font-bold text-base">
+            <Check size={20} /> {isAdmin ? 'Devis envoyé !' : 'Commande envoyée ! 🎉'}
           </div>
-          {selectedClient?.whatsapp && (
-            <a
-              href={`https://wa.me/${selectedClient.whatsapp.replace(/\D/g, '')}?text=${encodeURIComponent(preview)}`}
-              target="_blank"
-              rel="noopener noreferrer"
-              className="flex items-center justify-center gap-2 w-full py-4 rounded-2xl bg-[#25D366] text-white font-bold text-base hover:bg-[#1ebe5d] transition"
-            >
-              <MessageCircle size={20} /> Ouvrir WhatsApp
-            </a>
-          )}
           <button
             onClick={() => router.push('/historique')}
             className="flex items-center justify-center gap-2 w-full py-3 rounded-2xl border border-border text-stone-600 text-sm font-medium hover:bg-beige-50 transition"

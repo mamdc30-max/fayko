@@ -2,7 +2,7 @@
 
 import { useState, useEffect } from 'react'
 import { supabase } from '@/lib/supabase'
-import type { Forfait, ElementCarte, Settings } from '@/lib/types'
+import type { Forfait, ElementCarte, Settings, Template } from '@/lib/types'
 import { formatPrice } from '@/lib/utils'
 import { Plus, Trash2, Save, Check, Edit2, X } from 'lucide-react'
 import { useUserContext } from '@/lib/user-context'
@@ -28,6 +28,12 @@ export default function ParametresPage() {
 
   const [savedSettings, setSavedSettings] = useState(false)
 
+  // Templates messages
+  const [templates, setTemplates] = useState<Template[]>([])
+  const [editingTemplate, setEditingTemplate] = useState<number | null>(null)
+  const [editTemplateContenu, setEditTemplateContenu] = useState('')
+  const [savedTemplate, setSavedTemplate] = useState<number | null>(null)
+
   // Catalogue groupé par catégorie (BtoC)
   const forfaitsByCategory = forfaits.reduce((acc, f) => {
     const cat = f.categorie || 'Général'
@@ -39,14 +45,16 @@ export default function ParametresPage() {
 
   useEffect(() => {
     async function load() {
-      const [{ data: f }, { data: e }, { data: s }] = await Promise.all([
+      const [{ data: f }, { data: e }, { data: s }, { data: t }] = await Promise.all([
         supabase.from('forfaits').select('*').order('categorie').order('nom'),
         supabase.from('elements_carte').select('*').order('nom'),
         supabase.from('settings').select('*').single(),
+        supabase.from('templates').select('*').order('id'),
       ])
       if (f) setForfaits(f)
       if (e) setElements(e)
       if (s) setSettings(s)
+      if (t) setTemplates(t)
       setLoading(false)
     }
     load()
@@ -118,6 +126,14 @@ export default function ParametresPage() {
     setTimeout(() => setSavedSettings(false), 2000)
   }
 
+  async function saveTemplate(id: number) {
+    await supabase.from('templates').update({ contenu: editTemplateContenu }).eq('id', id)
+    setTemplates(prev => prev.map(t => t.id === id ? { ...t, contenu: editTemplateContenu } : t))
+    setEditingTemplate(null)
+    setSavedTemplate(id)
+    setTimeout(() => setSavedTemplate(null), 2000)
+  }
+
   if (loading) return <div className="text-muted text-sm pt-8 text-center">Chargement…</div>
 
   return (
@@ -129,26 +145,28 @@ export default function ParametresPage() {
         </p>
       </div>
 
-      {/* Acompte */}
-      <section className="bg-surface rounded-2xl border border-border p-4 space-y-3">
-        <h2 className="font-semibold text-stone-800 text-sm">Acompte par défaut</h2>
-        <div className="flex items-center gap-3">
-          <div className="flex-1 relative">
-            <input
-              type="number" min={1} max={100}
-              value={settings.acompte_pourcentage}
-              onChange={e => setSettings(prev => ({ ...prev, acompte_pourcentage: parseInt(e.target.value) || 50 }))}
-              className="w-full border border-border rounded-xl px-4 py-2.5 text-sm bg-beige-50 focus:outline-none focus:ring-2 focus:ring-primary/30 pr-8"
-            />
-            <span className="absolute right-3 top-1/2 -translate-y-1/2 text-muted text-sm">%</span>
+      {/* Acompte (admin seulement) */}
+      {isAdmin && (
+        <section className="bg-surface rounded-2xl border border-border p-4 space-y-3">
+          <h2 className="font-semibold text-stone-800 text-sm">Acompte par défaut</h2>
+          <div className="flex items-center gap-3">
+            <div className="flex-1 relative">
+              <input
+                type="number" min={1} max={100}
+                value={settings.acompte_pourcentage}
+                onChange={e => setSettings(prev => ({ ...prev, acompte_pourcentage: parseInt(e.target.value) || 50 }))}
+                className="w-full border border-border rounded-xl px-4 py-2.5 text-sm bg-beige-50 focus:outline-none focus:ring-2 focus:ring-primary/30 pr-8"
+              />
+              <span className="absolute right-3 top-1/2 -translate-y-1/2 text-muted text-sm">%</span>
+            </div>
+            <button onClick={saveSettings}
+              className={`flex items-center gap-2 px-4 py-2.5 rounded-xl text-sm font-medium transition ${savedSettings ? 'bg-green-100 text-green-700' : 'bg-primary text-white hover:bg-primary-dark'}`}>
+              {savedSettings ? <Check size={16} /> : <Save size={16} />}
+              {savedSettings ? 'Enregistré' : 'Enregistrer'}
+            </button>
           </div>
-          <button onClick={saveSettings}
-            className={`flex items-center gap-2 px-4 py-2.5 rounded-xl text-sm font-medium transition ${savedSettings ? 'bg-green-100 text-green-700' : 'bg-primary text-white hover:bg-primary-dark'}`}>
-            {savedSettings ? <Check size={16} /> : <Save size={16} />}
-            {savedSettings ? 'Enregistré' : 'Enregistrer'}
-          </button>
-        </div>
-      </section>
+        </section>
+      )}
 
       {/* ========== BtoC : Mon catalogue ========== */}
       {!isAdmin && (
@@ -384,6 +402,60 @@ export default function ParametresPage() {
               </div>
             ))}
             {elements.length === 0 && <p className="text-sm text-muted py-2">Aucun élément configuré</p>}
+          </div>
+        </section>
+      )}
+
+      {/* ========== Messages (admin + BtoC) ========== */}
+      {templates.length > 0 && (
+        <section className="bg-surface rounded-2xl border border-border p-4 space-y-3">
+          <div>
+            <h2 className="font-semibold text-stone-800 text-sm">Mes messages</h2>
+            <p className="text-xs text-muted mt-0.5">
+              Personnalise les messages envoyés sur WhatsApp. Variables disponibles : <span className="font-mono text-stone-600">[Prénom]</span> <span className="font-mono text-stone-600">[Montant]</span> <span className="font-mono text-stone-600">[Acompte]</span>
+            </p>
+          </div>
+
+          <div className="space-y-3">
+            {templates.map(t => {
+              const meta = {
+                paiement:       { emoji: '💳', label: 'Message de paiement' },
+                relance:        { emoji: '🔔', label: 'Message de relance' },
+                remerciement:   { emoji: '🎉', label: 'Message de remerciement' },
+              }[t.type] ?? { emoji: '💬', label: t.type }
+
+              return editingTemplate === t.id ? (
+                <div key={t.id} className="bg-beige-50 rounded-xl p-3 border border-border space-y-2">
+                  <p className="text-xs font-semibold text-stone-700">{meta.emoji} {meta.label}</p>
+                  <textarea
+                    value={editTemplateContenu}
+                    onChange={e => setEditTemplateContenu(e.target.value)}
+                    rows={5}
+                    className="w-full border border-border rounded-xl px-3 py-2 text-sm bg-surface focus:outline-none focus:ring-2 focus:ring-primary/30 resize-none"
+                  />
+                  <div className="flex gap-2">
+                    <button
+                      onClick={() => saveTemplate(t.id)}
+                      className={`flex items-center gap-1.5 px-4 py-2 rounded-xl text-sm font-medium transition ${savedTemplate === t.id ? 'bg-green-100 text-green-700' : 'bg-primary text-white hover:bg-primary-dark'}`}>
+                      {savedTemplate === t.id ? <><Check size={14} /> Enregistré</> : <><Save size={14} /> Enregistrer</>}
+                    </button>
+                    <button onClick={() => setEditingTemplate(null)} className="text-sm text-muted px-3 py-2"><X size={16} /></button>
+                  </div>
+                </div>
+              ) : (
+                <div key={t.id} className="rounded-xl border border-border hover:border-primary/20 transition overflow-hidden">
+                  <div className="flex items-center justify-between px-3 py-2.5 bg-beige-50 border-b border-border">
+                    <p className="text-xs font-semibold text-stone-700">{meta.emoji} {meta.label}</p>
+                    <button
+                      onClick={() => { setEditingTemplate(t.id); setEditTemplateContenu(t.contenu) }}
+                      className="flex items-center gap-1 text-xs text-primary font-medium hover:text-primary-dark transition">
+                      <Edit2 size={12} /> Modifier
+                    </button>
+                  </div>
+                  <p className="px-3 py-2.5 text-xs text-stone-600 whitespace-pre-line leading-relaxed">{t.contenu}</p>
+                </div>
+              )
+            })}
           </div>
         </section>
       )}
