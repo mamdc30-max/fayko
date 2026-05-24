@@ -376,7 +376,7 @@ export default function DevisFichePage() {
           {!showDeleteConfirm ? (
             <button onClick={() => setShowDeleteConfirm(true)}
               className="flex items-center gap-2 text-red-500 text-sm font-medium">
-              <Trash2 size={16} /> Supprimer ce devis
+              <Trash2 size={16} /> {isAdmin ? 'Supprimer ce devis' : 'Supprimer cette commande'}
             </button>
           ) : (
             <div className="bg-red-50 rounded-2xl p-4 border border-red-200">

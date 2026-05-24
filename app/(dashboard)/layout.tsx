@@ -8,18 +8,6 @@ import { UserContext } from '@/lib/user-context'
 import { Home, MessageSquare, PlusCircle, Clock, Bell, Settings, BookTemplate, LogOut, Menu, X } from 'lucide-react'
 import { cn } from '@/lib/utils'
 
-const navItems = [
-  { href: '/', label: 'Accueil', icon: Home },
-  { href: '/chatbot', label: 'Chatbot', icon: MessageSquare },
-  { href: '/devis', label: 'Commande', icon: PlusCircle },
-  { href: '/historique', label: 'Historique', icon: Clock },
-  { href: '/relances', label: 'Relances', icon: Bell },
-  { href: '/templates', label: 'Templates', icon: BookTemplate },
-  { href: '/parametres', label: 'Paramètres', icon: Settings },
-]
-
-// mobileBottomNav is now computed dynamically inside the component (visibleMobileNav)
-
 export default function DashboardLayout({ children }: { children: React.ReactNode }) {
   const router = useRouter()
   const pathname = usePathname()
@@ -30,6 +18,17 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
 
   const adminEmail = process.env.NEXT_PUBLIC_ADMIN_EMAIL
   const isAdmin = !adminEmail || userEmail === adminEmail
+
+  const navItems = [
+    { href: '/', label: 'Accueil', icon: Home },
+    { href: '/chatbot', label: 'Chatbot', icon: MessageSquare },
+    { href: '/devis', label: isAdmin ? 'Devis' : 'Commande', icon: PlusCircle },
+    { href: '/historique', label: 'Historique', icon: Clock },
+    { href: '/relances', label: 'Relances', icon: Bell },
+    { href: '/templates', label: 'Templates', icon: BookTemplate },
+    { href: '/parametres', label: 'Paramètres', icon: Settings },
+  ]
+
   const visibleNavItems = navItems.filter(item => item.href !== '/chatbot' || isAdmin)
   const visibleMobileNav = visibleNavItems.slice(0, 5)
 
@@ -71,7 +70,7 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
   if (checking) {
     return (
       <div className="min-h-screen bg-beige flex items-center justify-center">
-        <div className="text-primary font-bold text-2xl animate-pulse">Fayko</div>
+        <div className="text-primary font-bold text-2xl animate-pulse">✨</div>
       </div>
     )
   }
@@ -81,7 +80,7 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
       {/* Desktop sidebar */}
       <aside className="hidden md:flex fixed left-0 top-0 h-full w-56 bg-surface border-r border-border flex-col z-30">
         <div className="p-6 border-b border-border">
-          <span className="text-2xl font-bold text-primary">Fayko</span>
+          <span className="text-2xl font-bold text-primary">✨</span>
         </div>
         <nav className="flex-1 p-3 space-y-1 overflow-y-auto">
           {visibleNavItems.map(({ href, label, icon: Icon }) => (
@@ -117,7 +116,7 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
 
       {/* Mobile header */}
       <header className="md:hidden fixed top-0 left-0 right-0 bg-surface border-b border-border z-30 px-4 h-14 flex items-center justify-between">
-        <span className="text-xl font-bold text-primary">Fayko</span>
+        <span className="text-xl font-bold text-primary">✨</span>
         <button onClick={() => setMenuOpen(!menuOpen)} className="p-1 text-muted">
           {menuOpen ? <X size={22} /> : <Menu size={22} />}
         </button>

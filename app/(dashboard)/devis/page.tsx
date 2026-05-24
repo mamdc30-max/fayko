@@ -338,7 +338,7 @@ export default function NewDevisPage() {
                       <span className="text-primary font-medium">{formatPrice(f.prix_ht)}</span>
                     </button>
                   ))}
-                  {forfaits.length === 0 && <p className="px-4 py-2.5 text-sm text-muted">Aucun forfait configuré</p>}
+                  {forfaits.length === 0 && <p className="px-4 py-2.5 text-sm text-muted">{isAdmin ? 'Aucun forfait configuré' : 'Aucun article configuré'}</p>}
                 </div>
               )}
 
@@ -351,7 +351,7 @@ export default function NewDevisPage() {
                       <span className="text-primary font-medium">{formatPrice(e.prix)}</span>
                     </button>
                   ))}
-                  {elements.length === 0 && <p className="px-4 py-2.5 text-sm text-muted">Aucun élément configuré</p>}
+                  {elements.length === 0 && <p className="px-4 py-2.5 text-sm text-muted">{isAdmin ? 'Aucun élément configuré' : 'Aucune option configurée'}</p>}
                 </div>
               )}
 
@@ -480,7 +480,7 @@ export default function NewDevisPage() {
                 )}
               >
                 <Copy size={20} />
-                {saving ? 'Enregistrement…' : 'Copier le devis'}
+                {saving ? 'Enregistrement…' : (isAdmin ? 'Copier le devis' : 'Copier la commande')}
               </button>
               {/* Warning: no WhatsApp */}
               {canCopy && (
@@ -499,7 +499,7 @@ export default function NewDevisPage() {
       ) : (
         <div className="space-y-3">
           <div className="flex items-center justify-center gap-2 w-full py-3.5 rounded-2xl bg-green-100 text-green-700 font-semibold text-sm">
-            <Check size={18} /> Devis enregistré !
+            <Check size={18} /> {isAdmin ? 'Devis enregistré !' : 'Commande enregistrée !'}
           </div>
           {selectedClient?.whatsapp && (
             <a

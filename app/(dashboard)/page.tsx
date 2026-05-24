@@ -74,7 +74,7 @@ export default function HomePage() {
     <div className="space-y-6">
       <div>
         <h1 className="text-2xl font-bold text-stone-800">Bonjour 👋</h1>
-        <p className="text-muted text-sm mt-0.5">Voici ce qui se passe chez Fayko</p>
+        <p className="text-muted text-sm mt-0.5">Voici un résumé de ton activité</p>
       </div>
 
       {/* Stats */}
