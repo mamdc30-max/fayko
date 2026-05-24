@@ -217,15 +217,13 @@ export default function NewDevisPage() {
               <input value={newClient.nom} onChange={e => setNewClient(p => ({ ...p, nom: e.target.value }))}
                 placeholder="Nom *" className="border border-border rounded-xl px-3 py-2.5 text-sm bg-beige-50 focus:outline-none focus:ring-2 focus:ring-primary/30" />
             </div>
-            <input value={newClient.marque} onChange={e => setNewClient(p => ({ ...p, marque: e.target.value }))}
-              placeholder="Nom de marque / activité (optionnel)" className="w-full border border-border rounded-xl px-3 py-2.5 text-sm bg-beige-50 focus:outline-none focus:ring-2 focus:ring-primary/30" />
             <input value={newClient.whatsapp} onChange={e => setNewClient(p => ({ ...p, whatsapp: e.target.value }))}
               placeholder="WhatsApp (ex: +33612345678)" className="w-full border border-border rounded-xl px-3 py-2.5 text-sm bg-beige-50 focus:outline-none focus:ring-2 focus:ring-primary/30" />
             <div className="flex gap-2">
               <button
                 onClick={() => {
                   if (newClient.prenom && newClient.nom)
-                    setSelectedClient({ id: 'new', ...newClient, marque: newClient.marque || null, derniere_synthese: null, derniere_synthese_at: null, created_at: '' })
+                    setSelectedClient({ id: 'new', ...newClient, marque: null, derniere_synthese: null, derniere_synthese_at: null, created_at: '' })
                 }}
                 className="bg-primary text-white text-sm px-4 py-2 rounded-xl font-medium"
               >
@@ -254,7 +252,7 @@ export default function NewDevisPage() {
         <input
           value={titre}
           onChange={e => setTitre(e.target.value)}
-          placeholder="Ex : Logo + Carte de visite"
+          placeholder={isAdmin ? 'Ex : Logo + Carte de visite' : 'Ex : Commande du 15 juin'}
           className="w-full border border-border rounded-xl px-4 py-2.5 text-sm bg-beige-50 focus:outline-none focus:ring-2 focus:ring-primary/30 focus:border-primary"
         />
       </section>

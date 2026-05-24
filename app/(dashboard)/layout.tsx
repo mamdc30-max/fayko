@@ -5,7 +5,7 @@ import { useRouter, usePathname } from 'next/navigation'
 import Link from 'next/link'
 import { supabase } from '@/lib/supabase'
 import { UserContext } from '@/lib/user-context'
-import { Home, MessageSquare, PlusCircle, Clock, Bell, Settings, BookTemplate, LogOut, Menu, X } from 'lucide-react'
+import { Home, MessageSquare, PlusCircle, Clock, Bell, Settings, LogOut, Menu, X } from 'lucide-react'
 import { cn } from '@/lib/utils'
 
 export default function DashboardLayout({ children }: { children: React.ReactNode }) {
@@ -25,7 +25,6 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
     { href: '/devis', label: isAdmin ? 'Devis' : 'Commande', icon: PlusCircle },
     { href: '/historique', label: 'Historique', icon: Clock },
     { href: '/relances', label: 'Relances', icon: Bell },
-    { href: '/templates', label: 'Templates', icon: BookTemplate },
     { href: '/parametres', label: 'Paramètres', icon: Settings },
   ]
 
