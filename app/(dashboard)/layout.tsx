@@ -28,8 +28,8 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
     { href: '/parametres', label: 'Paramètres', icon: Settings },
   ] : [
     { href: '/', label: 'Accueil', icon: Home },
-    { href: '/devis', label: 'Commande', icon: PlusCircle },
-    { href: '/historique', label: 'Commandes', icon: Clock },
+    { href: '/devis', label: 'Créer', icon: PlusCircle },
+    { href: '/historique', label: 'Historique', icon: Clock },
     { href: '/relances', label: 'Relances', icon: Bell },
     { href: '/parametres', label: 'Catalogue', icon: Package },
   ]
