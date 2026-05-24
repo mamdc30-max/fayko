@@ -8,6 +8,7 @@ import type { Devis, Client, DevisLigne, DevisFormLigne, Settings, Template } fr
 import { Copy, Check, Trash2, ChevronLeft, Save, Download, MessageCircle } from 'lucide-react'
 import { cn } from '@/lib/utils'
 import Link from 'next/link'
+import { useUserContext } from '@/lib/user-context'
 
 let lc = 0
 function newId() { return `l-${++lc}` }
@@ -15,6 +16,7 @@ function newId() { return `l-${++lc}` }
 export default function DevisFichePage() {
   const { id } = useParams<{ id: string }>()
   const router = useRouter()
+  const { isAdmin } = useUserContext()
 
   const [devis, setDevis] = useState<Devis | null>(null)
   const [client, setClient] = useState<Client | null>(null)
@@ -41,7 +43,7 @@ export default function DevisFichePage() {
     async function load() {
       const [{ data: d }, { data: s }, { data: t }] = await Promise.all([
         supabase.from('devis').select('*, clients(*), devis_lignes(*), devis_statut_history(*)').eq('id', id).single(),
-        supabase.from('settings').select('*').eq('id', 1).single(),
+        supabase.from('settings').select('*').single(),
         supabase.from('templates').select('*').order('id'),
       ])
       if (d) {
@@ -54,7 +56,7 @@ export default function DevisFichePage() {
         setRemiseValeur(d.remise_valeur?.toString() || '')
         setModeReglement(d.mode_reglement)
         setLignes((d.devis_lignes || []).sort((a: DevisLigne, b: DevisLigne) => a.ordre - b.ordre).map((l: DevisLigne) => ({
-          id: l.id, type: l.type, libelle: l.libelle, prix: l.prix, ref_id: l.ref_id || undefined,
+          id: l.id, type: l.type, libelle: l.libelle, prix: l.prix, quantite: l.quantite || 1, ref_id: l.ref_id || undefined,
         })))
       }
       if (s) setSettings(s)
@@ -71,9 +73,12 @@ export default function DevisFichePage() {
     }
   }, [statut, prevStatut])
 
-  function updateLigne(lid: string, field: 'libelle' | 'prix', value: string) {
+  function updateLigne(lid: string, field: 'libelle' | 'prix' | 'quantite', value: string) {
     setLignes(prev => prev.map(l =>
-      l.id === lid ? { ...l, [field]: field === 'prix' ? parseFloat(value) || 0 : value } : l
+      l.id === lid ? {
+        ...l,
+        [field]: field === 'libelle' ? value : (parseFloat(value) || (field === 'quantite' ? 1 : 0))
+      } : l
     ))
   }
 
@@ -100,7 +105,7 @@ export default function DevisFichePage() {
       // Update lignes: delete all and re-insert
       await supabase.from('devis_lignes').delete().eq('devis_id', id)
       await supabase.from('devis_lignes').insert(
-        lignes.map((l, i) => ({ devis_id: id, type: l.type, libelle: l.libelle, prix: l.prix, ref_id: l.ref_id || null, ordre: i }))
+        lignes.map((l, i) => ({ devis_id: id, type: l.type, libelle: l.libelle, prix: l.prix, quantite: l.quantite || 1, ref_id: l.ref_id || null, ordre: i }))
       )
 
       // Track statut change
@@ -117,7 +122,7 @@ export default function DevisFichePage() {
 
   async function handleCopyDevis() {
     if (!client || !devis) return
-    const text = generateDevisText(client, lignes, remiseType || null, remiseValeur ? parseFloat(remiseValeur) : null, modeReglement, settings.acompte_pourcentage)
+    const text = generateDevisText(client, lignes, remiseType || null, remiseValeur ? parseFloat(remiseValeur) : null, modeReglement, settings.acompte_pourcentage, isAdmin)
     await copyToClipboard(text)
     setCopied(true)
     setTimeout(() => setCopied(false), 2000)
@@ -137,7 +142,7 @@ export default function DevisFichePage() {
   }
 
   if (loading) return <div className="text-muted text-sm pt-8 text-center">Chargement…</div>
-  if (!devis || !client) return <div className="text-muted text-sm pt-8 text-center">Devis introuvable</div>
+  if (!devis || !client) return <div className="text-muted text-sm pt-8 text-center">{isAdmin ? 'Devis introuvable' : 'Commande introuvable'}</div>
 
   const { total } = calcTotal(lignes, remiseType || null, remiseValeur ? parseFloat(remiseValeur) : null)
   const acompte = total * settings.acompte_pourcentage / 100
@@ -222,35 +227,49 @@ export default function DevisFichePage() {
 
       {/* Lignes */}
       <section className="bg-surface rounded-2xl border border-border p-4 space-y-3">
-        <h2 className="font-semibold text-stone-800 text-sm">Éléments</h2>
+        <h2 className="font-semibold text-stone-800 text-sm">{isAdmin ? 'Éléments' : 'Articles'}</h2>
         {lignes.map(ligne => (
-          <div key={ligne.id} className="flex items-center gap-2">
-            <div className="flex-1">
+          <div key={ligne.id} className="bg-beige-50 border border-border rounded-xl p-3 space-y-2">
+            <div className="flex items-start gap-2">
               <input
                 value={ligne.libelle}
                 onChange={e => updateLigne(ligne.id, 'libelle', e.target.value)}
-                className="w-full border border-border rounded-xl px-3 py-2 text-sm bg-beige-50 focus:outline-none focus:ring-2 focus:ring-primary/30"
+                className="flex-1 border border-border rounded-lg px-3 py-2 text-sm bg-surface focus:outline-none focus:ring-2 focus:ring-primary/30"
               />
+              <button onClick={() => removeLigne(ligne.id)} className="text-muted hover:text-red-500 p-1 shrink-0 mt-0.5">
+                <Trash2 size={15} />
+              </button>
             </div>
-            <div className="w-24 relative">
+            <div className="flex items-center gap-2">
               <input
                 type="number"
-                value={ligne.prix || ''}
-                onChange={e => updateLigne(ligne.id, 'prix', e.target.value)}
-                className="w-full border border-border rounded-xl px-3 py-2 text-sm bg-beige-50 focus:outline-none focus:ring-2 focus:ring-primary/30 pr-6"
+                min={1}
+                value={ligne.quantite || 1}
+                onChange={e => updateLigne(ligne.id, 'quantite', e.target.value)}
+                className="w-14 border border-border rounded-lg px-2 py-1.5 text-sm bg-surface focus:outline-none focus:ring-2 focus:ring-primary/30 text-center"
               />
-              <span className="absolute right-2.5 top-1/2 -translate-y-1/2 text-xs text-muted">€</span>
+              <span className="text-muted text-xs font-medium">×</span>
+              <div className="flex-1 relative">
+                <input
+                  type="number"
+                  value={ligne.prix || ''}
+                  onChange={e => updateLigne(ligne.id, 'prix', e.target.value)}
+                  className="w-full border border-border rounded-lg px-3 py-1.5 text-sm bg-surface focus:outline-none focus:ring-2 focus:ring-primary/30 pr-6"
+                />
+                <span className="absolute right-2.5 top-1/2 -translate-y-1/2 text-xs text-muted">€</span>
+              </div>
+              <span className="text-muted text-xs">=</span>
+              <span className="text-sm font-bold text-stone-800 shrink-0 min-w-[60px] text-right">
+                {formatPrice((ligne.quantite || 1) * ligne.prix)}
+              </span>
             </div>
-            <button onClick={() => removeLigne(ligne.id)} className="text-muted hover:text-red-500 p-1">
-              <Trash2 size={16} />
-            </button>
           </div>
         ))}
         <button
-          onClick={() => setLignes(prev => [...prev, { id: newId(), type: 'libre', libelle: '', prix: 0 }])}
+          onClick={() => setLignes(prev => [...prev, { id: newId(), type: 'libre', libelle: '', prix: 0, quantite: 1 }])}
           className="text-sm text-primary font-medium"
         >
-          + Ajouter une ligne
+          {isAdmin ? '+ Ajouter un élément' : '+ Ajouter un article'}
         </button>
       </section>
 

@@ -7,12 +7,14 @@ import { calcTotal, formatPrice, generateDevisText, copyToClipboard } from '@/li
 import type { Client, Forfait, ElementCarte, DevisFormLigne, Settings } from '@/lib/types'
 import { Plus, Trash2, Copy, Check, ChevronDown, ChevronUp, Search, MessageCircle, History } from 'lucide-react'
 import { cn } from '@/lib/utils'
+import { useUserContext } from '@/lib/user-context'
 
 let lineCounter = 0
 function newId() { return `line-${++lineCounter}` }
 
 export default function NewDevisPage() {
   const router = useRouter()
+  const { isAdmin } = useUserContext()
 
   // Data
   const [clients, setClients] = useState<Client[]>([])
@@ -43,7 +45,7 @@ export default function NewDevisPage() {
         supabase.from('clients').select('*').order('nom'),
         supabase.from('forfaits').select('*').order('nom'),
         supabase.from('elements_carte').select('*').order('nom'),
-        supabase.from('settings').select('*').eq('id', 1).single(),
+        supabase.from('settings').select('*').single(),
       ])
       if (c) setClients(c)
       if (f) setForfaits(f)
@@ -58,7 +60,7 @@ export default function NewDevisPage() {
     const text = generateDevisText(
       selectedClient, lignes,
       remiseType || null, remiseValeur ? parseFloat(remiseValeur) : null,
-      modeReglement, settings.acompte_pourcentage
+      modeReglement, settings.acompte_pourcentage, isAdmin
     )
     setPreview(text)
   }, [selectedClient, lignes, remiseType, remiseValeur, modeReglement, settings])
@@ -68,17 +70,17 @@ export default function NewDevisPage() {
   )
 
   function addForfait(f: Forfait) {
-    setLignes(prev => [...prev, { id: newId(), type: 'forfait', libelle: f.nom, description: f.description || null, prix: f.prix_ht, ref_id: f.id }])
+    setLignes(prev => [...prev, { id: newId(), type: 'forfait', libelle: f.nom, description: f.description || null, prix: f.prix_ht, quantite: 1, ref_id: f.id }])
     setOpenSection(null)
   }
 
   function addElement(e: ElementCarte) {
-    setLignes(prev => [...prev, { id: newId(), type: 'element', libelle: e.nom, prix: e.prix, ref_id: e.id }])
+    setLignes(prev => [...prev, { id: newId(), type: 'element', libelle: e.nom, prix: e.prix, quantite: 1, ref_id: e.id }])
     setOpenSection(null)
   }
 
   function addLibre() {
-    setLignes(prev => [...prev, { id: newId(), type: 'libre', libelle: '', prix: 0 }])
+    setLignes(prev => [...prev, { id: newId(), type: 'libre', libelle: '', prix: 0, quantite: 1 }])
     setOpenSection(null)
   }
 
@@ -86,9 +88,12 @@ export default function NewDevisPage() {
     setLignes(prev => prev.filter(l => l.id !== id))
   }
 
-  function updateLigne(id: string, field: 'libelle' | 'prix', value: string) {
+  function updateLigne(id: string, field: 'libelle' | 'prix' | 'quantite', value: string) {
     setLignes(prev => prev.map(l =>
-      l.id === id ? { ...l, [field]: field === 'prix' ? parseFloat(value) || 0 : value } : l
+      l.id === id ? {
+        ...l,
+        [field]: field === 'libelle' ? value : (parseFloat(value) || (field === 'quantite' ? 1 : 0))
+      } : l
     ))
   }
 
@@ -122,7 +127,7 @@ export default function NewDevisPage() {
 
     if (devis) {
       await supabase.from('devis_lignes').insert(
-        lignes.map((l, i) => ({ devis_id: devis.id, type: l.type, libelle: l.libelle, description: l.description || null, prix: l.prix, ref_id: l.ref_id || null, ordre: i }))
+        lignes.map((l, i) => ({ devis_id: devis.id, type: l.type, libelle: l.libelle, description: l.description || null, prix: l.prix, quantite: l.quantite || 1, ref_id: l.ref_id || null, ordre: i }))
       )
       await supabase.from('devis_statut_history').insert({ devis_id: devis.id, statut: 'Envoyé' })
     }
@@ -158,8 +163,10 @@ export default function NewDevisPage() {
   return (
     <div className="space-y-5">
       <div>
-        <h1 className="text-xl font-bold text-stone-800">Nouveau devis</h1>
-        <p className="text-xs text-muted mt-0.5">Remplis les informations, copie et envoie sur WhatsApp</p>
+        <h1 className="text-xl font-bold text-stone-800">{isAdmin ? 'Nouveau devis' : 'Nouvelle commande'}</h1>
+        <p className="text-xs text-muted mt-0.5">
+          {isAdmin ? 'Remplis les informations, copie et envoie sur WhatsApp' : 'Choisis les articles et envoie sur WhatsApp en 30 secondes'}
+        </p>
       </div>
 
       {/* CLIENT */}
@@ -254,39 +261,54 @@ export default function NewDevisPage() {
 
       {/* LIGNES */}
       <section className="bg-surface rounded-2xl border border-border p-4 space-y-3">
-        <h2 className="font-semibold text-stone-800 text-sm">Éléments du devis</h2>
+        <h2 className="font-semibold text-stone-800 text-sm">{isAdmin ? 'Éléments du devis' : 'Articles de la commande'}</h2>
 
         {lignes.map(ligne => (
-          <div key={ligne.id} className="flex items-center gap-2">
-            <div className="flex-1">
+          <div key={ligne.id} className="bg-beige-50 border border-border rounded-xl p-3 space-y-2">
+            {/* Ligne 1 : label + supprimer */}
+            <div className="flex items-start gap-2">
               {ligne.type === 'libre' ? (
                 <input
                   value={ligne.libelle}
                   onChange={e => updateLigne(ligne.id, 'libelle', e.target.value)}
-                  placeholder="Description"
-                  className="w-full border border-border rounded-xl px-3 py-2 text-sm bg-beige-50 focus:outline-none focus:ring-2 focus:ring-primary/30"
+                  placeholder="Description de l'article"
+                  className="flex-1 border border-border rounded-lg px-3 py-2 text-sm bg-surface focus:outline-none focus:ring-2 focus:ring-primary/30"
                 />
               ) : (
-                <div className="bg-beige-50 border border-border rounded-xl px-3 py-2 text-sm text-stone-700">
-                  <span>{ligne.libelle}</span>
+                <div className="flex-1">
+                  <p className="text-sm font-medium text-stone-800">{ligne.libelle}</p>
                   {ligne.description && <p className="text-xs text-muted mt-0.5">{ligne.description}</p>}
                 </div>
               )}
+              <button onClick={() => removeLigne(ligne.id)} className="text-muted hover:text-red-500 transition p-1 shrink-0 mt-0.5">
+                <Trash2 size={15} />
+              </button>
             </div>
-            <div className="w-24">
-              <div className="relative">
+            {/* Ligne 2 : quantité × prix = total */}
+            <div className="flex items-center gap-2">
+              <input
+                type="number"
+                min={1}
+                value={ligne.quantite || 1}
+                onChange={e => updateLigne(ligne.id, 'quantite', e.target.value)}
+                className="w-14 border border-border rounded-lg px-2 py-1.5 text-sm bg-surface focus:outline-none focus:ring-2 focus:ring-primary/30 text-center"
+              />
+              <span className="text-muted text-xs font-medium">×</span>
+              <div className="flex-1 relative">
                 <input
                   type="number"
                   value={ligne.prix || ''}
                   onChange={e => updateLigne(ligne.id, 'prix', e.target.value)}
-                  className="w-full border border-border rounded-xl px-3 py-2 text-sm bg-beige-50 focus:outline-none focus:ring-2 focus:ring-primary/30 pr-6"
+                  placeholder="Prix unitaire"
+                  className="w-full border border-border rounded-lg px-3 py-1.5 text-sm bg-surface focus:outline-none focus:ring-2 focus:ring-primary/30 pr-6"
                 />
                 <span className="absolute right-2.5 top-1/2 -translate-y-1/2 text-xs text-muted">€</span>
               </div>
+              <span className="text-muted text-xs">=</span>
+              <span className="text-sm font-bold text-stone-800 shrink-0 min-w-[60px] text-right">
+                {formatPrice((ligne.quantite || 1) * ligne.prix)}
+              </span>
             </div>
-            <button onClick={() => removeLigne(ligne.id)} className="text-muted hover:text-red-500 transition p-1">
-              <Trash2 size={16} />
-            </button>
           </div>
         ))}
 
@@ -299,7 +321,11 @@ export default function NewDevisPage() {
                 className="flex items-center gap-2 text-sm text-primary font-medium"
               >
                 <Plus size={15} />
-                {section === 'forfaits' ? 'Ajouter un forfait' : section === 'elements' ? 'Ajouter un élément' : 'Ajouter une ligne libre'}
+                {section === 'forfaits'
+                  ? (isAdmin ? 'Ajouter un forfait' : 'Ajouter un article')
+                  : section === 'elements'
+                  ? (isAdmin ? 'Ajouter un élément' : 'Ajouter une option')
+                  : 'Ajouter une ligne libre'}
                 {openSection === section ? <ChevronUp size={14} /> : <ChevronDown size={14} />}
               </button>
 

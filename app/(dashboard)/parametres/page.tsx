@@ -5,8 +5,10 @@ import { supabase } from '@/lib/supabase'
 import type { Forfait, ElementCarte, Settings } from '@/lib/types'
 import { formatPrice } from '@/lib/utils'
 import { Plus, Trash2, Save, Check, Edit2, X } from 'lucide-react'
+import { useUserContext } from '@/lib/user-context'
 
 export default function ParametresPage() {
+  const { isAdmin } = useUserContext()
   const [forfaits, setForfaits] = useState<Forfait[]>([])
   const [elements, setElements] = useState<ElementCarte[]>([])
   const [settings, setSettings] = useState<Settings>({ id: 1, acompte_pourcentage: 50 })
@@ -31,7 +33,7 @@ export default function ParametresPage() {
       const [{ data: f }, { data: e }, { data: s }] = await Promise.all([
         supabase.from('forfaits').select('*').order('created_at'),
         supabase.from('elements_carte').select('*').order('created_at'),
-        supabase.from('settings').select('*').eq('id', 1).single(),
+        supabase.from('settings').select('*').single(),
       ])
       if (f) setForfaits(f)
       if (e) setElements(e)
@@ -92,7 +94,7 @@ export default function ParametresPage() {
   }
 
   async function saveSettings() {
-    await supabase.from('settings').update({ acompte_pourcentage: settings.acompte_pourcentage }).eq('id', 1)
+    await supabase.from('settings').update({ acompte_pourcentage: settings.acompte_pourcentage }).eq('id', settings.id)
     setSavedSettings(true)
     setTimeout(() => setSavedSettings(false), 2000)
   }
@@ -103,7 +105,7 @@ export default function ParametresPage() {
     <div className="space-y-6">
       <div>
         <h1 className="text-xl font-bold text-stone-800">Paramètres</h1>
-        <p className="text-xs text-muted mt-0.5">Configure tes forfaits, éléments et tarifs</p>
+        <p className="text-xs text-muted mt-0.5">Gère ton catalogue, tes articles et tes tarifs</p>
       </div>
 
       {/* Acompte */}
@@ -132,7 +134,7 @@ export default function ParametresPage() {
       {/* Forfaits */}
       <section className="bg-surface rounded-2xl border border-border p-4 space-y-3">
         <div className="flex items-center justify-between">
-          <h2 className="font-semibold text-stone-800 text-sm">Forfaits ({forfaits.length})</h2>
+          <h2 className="font-semibold text-stone-800 text-sm">{isAdmin ? 'Forfaits' : 'Articles'} ({forfaits.length})</h2>
           <button onClick={() => setAddingForfait(true)} className="flex items-center gap-1 text-xs text-primary font-medium">
             <Plus size={14} /> Ajouter
           </button>
@@ -199,7 +201,7 @@ export default function ParametresPage() {
       {/* Éléments à la carte */}
       <section className="bg-surface rounded-2xl border border-border p-4 space-y-3">
         <div className="flex items-center justify-between">
-          <h2 className="font-semibold text-stone-800 text-sm">Éléments à la carte ({elements.length})</h2>
+          <h2 className="font-semibold text-stone-800 text-sm">{isAdmin ? 'Éléments à la carte' : 'Options'} ({elements.length})</h2>
           <button onClick={() => setAddingElement(true)} className="flex items-center gap-1 text-xs text-primary font-medium">
             <Plus size={14} /> Ajouter
           </button>

@@ -36,6 +36,7 @@ export interface DevisLigne {
   type: LigneType
   libelle: string
   prix: number
+  quantite: number
   ref_id: string | null
   ordre: number
 }
@@ -91,6 +92,7 @@ export interface DevisFormLigne {
   libelle: string
   description?: string | null
   prix: number
+  quantite: number
   ref_id?: string
 }
 

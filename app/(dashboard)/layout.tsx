@@ -4,20 +4,21 @@ import { useEffect, useState } from 'react'
 import { useRouter, usePathname } from 'next/navigation'
 import Link from 'next/link'
 import { supabase } from '@/lib/supabase'
+import { UserContext } from '@/lib/user-context'
 import { Home, MessageSquare, PlusCircle, Clock, Bell, Settings, BookTemplate, LogOut, Menu, X } from 'lucide-react'
 import { cn } from '@/lib/utils'
 
 const navItems = [
   { href: '/', label: 'Accueil', icon: Home },
   { href: '/chatbot', label: 'Chatbot', icon: MessageSquare },
-  { href: '/devis', label: 'Nouveau devis', icon: PlusCircle },
+  { href: '/devis', label: 'Commande', icon: PlusCircle },
   { href: '/historique', label: 'Historique', icon: Clock },
   { href: '/relances', label: 'Relances', icon: Bell },
   { href: '/templates', label: 'Templates', icon: BookTemplate },
   { href: '/parametres', label: 'Paramètres', icon: Settings },
 ]
 
-const mobileBottomNav = navItems.slice(0, 5)
+// mobileBottomNav is now computed dynamically inside the component (visibleMobileNav)
 
 export default function DashboardLayout({ children }: { children: React.ReactNode }) {
   const router = useRouter()
@@ -25,11 +26,20 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
   const [checking, setChecking] = useState(true)
   const [menuOpen, setMenuOpen] = useState(false)
   const [relancesCount, setRelancesCount] = useState(0)
+  const [userEmail, setUserEmail] = useState<string | null>(null)
+
+  const adminEmail = process.env.NEXT_PUBLIC_ADMIN_EMAIL
+  const isAdmin = !adminEmail || userEmail === adminEmail
+  const visibleNavItems = navItems.filter(item => item.href !== '/chatbot' || isAdmin)
+  const visibleMobileNav = visibleNavItems.slice(0, 5)
 
   useEffect(() => {
     supabase.auth.getSession().then(({ data }) => {
       if (!data.session) router.replace('/login')
-      else setChecking(false)
+      else {
+        setChecking(false)
+        setUserEmail(data.session.user.email ?? null)
+      }
     })
   }, [router])
 
@@ -74,7 +84,7 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
           <span className="text-2xl font-bold text-primary">Fayko</span>
         </div>
         <nav className="flex-1 p-3 space-y-1 overflow-y-auto">
-          {navItems.map(({ href, label, icon: Icon }) => (
+          {visibleNavItems.map(({ href, label, icon: Icon }) => (
             <Link
               key={href}
               href={href}
@@ -117,7 +127,7 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
       {menuOpen && (
         <div className="md:hidden fixed inset-0 bg-surface z-20 pt-14">
           <nav className="p-4 space-y-1">
-            {navItems.map(({ href, label, icon: Icon }) => (
+            {visibleNavItems.map(({ href, label, icon: Icon }) => (
               <Link
                 key={href}
                 href={href}
@@ -154,13 +164,15 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
           </Link>
         )}
         <div className="max-w-2xl mx-auto px-4 py-6">
-          {children}
+          <UserContext.Provider value={{ isAdmin }}>
+            {children}
+          </UserContext.Provider>
         </div>
       </main>
 
       {/* Mobile bottom navigation */}
       <nav className="md:hidden fixed bottom-0 left-0 right-0 bg-surface border-t border-border z-30 flex">
-        {mobileBottomNav.map(({ href, label, icon: Icon }) => (
+        {visibleMobileNav.map(({ href, label, icon: Icon }) => (
           <Link
             key={href}
             href={href}
@@ -170,7 +182,7 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
             )}
           >
             <Icon size={20} />
-            <span className="text-[10px]">{label === 'Nouveau devis' ? 'Devis' : label}</span>
+            <span className="text-[10px]">{label}</span>
             {href === '/relances' && relancesCount > 0 && (
               <span className="absolute top-1 right-1/4 bg-primary text-white text-[9px] rounded-full w-4 h-4 flex items-center justify-center">
                 {relancesCount}

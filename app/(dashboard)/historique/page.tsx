@@ -6,6 +6,7 @@ import { supabase } from '@/lib/supabase'
 import { formatDate, formatPrice, STATUT_COLORS, STATUTS } from '@/lib/utils'
 import type { Devis, Client } from '@/lib/types'
 import { Search, FolderOpen, ChevronRight } from 'lucide-react'
+import { useUserContext } from '@/lib/user-context'
 
 interface DevisWithClient extends Devis { clients: Client }
 interface ClientGroup {
@@ -17,6 +18,7 @@ interface ClientGroup {
 }
 
 export default function HistoriquePage() {
+  const { isAdmin } = useUserContext()
   const [allDevis, setAllDevis] = useState<DevisWithClient[]>([])
   const [loading, setLoading] = useState(true)
   const [search, setSearch] = useState('')
@@ -61,7 +63,9 @@ export default function HistoriquePage() {
     <div className="space-y-5">
       <div>
         <h1 className="text-xl font-bold text-stone-800">Historique</h1>
-        <p className="text-xs text-muted mt-0.5">{allDevis.length} devis au total</p>
+        <p className="text-xs text-muted mt-0.5">
+          {allDevis.length} {isAdmin ? 'devis' : `commande${allDevis.length > 1 ? 's' : ''}`} au total
+        </p>
       </div>
 
       {/* View toggle */}
@@ -98,7 +102,7 @@ export default function HistoriquePage() {
       {view === 'liste' && (
         <div className="space-y-2">
           {filtered.length === 0 && (
-            <div className="text-center py-12 text-muted text-sm">Aucun devis trouvé</div>
+            <div className="text-center py-12 text-muted text-sm">{isAdmin ? 'Aucun devis trouvé' : 'Aucune commande trouvée'}</div>
           )}
           {filtered.map(d => (
             <Link key={d.id} href={`/devis/${d.id}`}
@@ -134,7 +138,9 @@ export default function HistoriquePage() {
                       </div>
                       <div>
                         <p className="font-semibold text-stone-800 text-sm">{g.client.prenom} {g.client.nom}</p>
-                        <p className="text-xs text-muted">{g.devis.length} devis</p>
+                        <p className="text-xs text-muted">
+                          {g.devis.length} {isAdmin ? 'devis' : `commande${g.devis.length > 1 ? 's' : ''}`}
+                        </p>
                       </div>
                     </div>
                     <div className="flex items-center gap-3">

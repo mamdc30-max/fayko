@@ -47,7 +47,7 @@ export default function FacturePage() {
   }
 
   const { sousTotal, remise, total } = calcTotal(
-    lignes.map(l => ({ id: l.id, type: l.type, libelle: l.libelle, prix: l.prix })),
+    lignes.map(l => ({ id: l.id, type: l.type, libelle: l.libelle, prix: l.prix, quantite: l.quantite || 1 })),
     devis.remise_type,
     devis.remise_valeur
   )

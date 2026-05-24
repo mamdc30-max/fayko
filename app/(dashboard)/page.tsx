@@ -6,6 +6,7 @@ import { supabase } from '@/lib/supabase'
 import { formatDate, formatPrice, STATUT_COLORS } from '@/lib/utils'
 import { Bell, PlusCircle, Clock, TrendingUp, Euro, Hourglass } from 'lucide-react'
 import type { Devis, Client } from '@/lib/types'
+import { useUserContext } from '@/lib/user-context'
 
 interface DevisWithClient extends Devis { clients: Client }
 
@@ -21,6 +22,7 @@ export default function HomePage() {
   const [recent, setRecent] = useState<DevisWithClient[]>([])
   const [stats, setStats] = useState<Stats>({ caMois: 0, enAttente: 0, devisMois: 0, tauxConversion: 0 })
   const [loading, setLoading] = useState(true)
+  const { isAdmin } = useUserContext()
 
   useEffect(() => {
     async function load() {
@@ -86,7 +88,7 @@ export default function HomePage() {
           <p className="text-2xl font-bold text-amber-600">{formatPrice(stats.enAttente)}</p>
         </div>
         <div className="bg-surface rounded-2xl p-4 border border-border">
-          <p className="text-xs text-muted mb-1">Devis ce mois</p>
+          <p className="text-xs text-muted mb-1">{isAdmin ? 'Devis ce mois' : 'Commandes ce mois'}</p>
           <p className="text-2xl font-bold text-stone-800">{stats.devisMois}</p>
         </div>
         <div className="bg-surface rounded-2xl p-4 border border-border">
@@ -123,22 +125,24 @@ export default function HomePage() {
       )}
 
       {/* Actions rapides */}
-      <div className="grid grid-cols-2 gap-3">
-        <Link
-          href="/chatbot"
-          className="bg-surface border border-border rounded-2xl p-4 flex flex-col gap-2 hover:border-primary/30 transition"
-        >
-          <span className="text-2xl">💬</span>
-          <p className="font-semibold text-sm text-stone-800">Qualifier un projet</p>
-          <p className="text-xs text-muted">Chatbot de qualification</p>
-        </Link>
+      <div className={`grid gap-3 ${isAdmin ? 'grid-cols-2' : 'grid-cols-1'}`}>
+        {isAdmin && (
+          <Link
+            href="/chatbot"
+            className="bg-surface border border-border rounded-2xl p-4 flex flex-col gap-2 hover:border-primary/30 transition"
+          >
+            <span className="text-2xl">💬</span>
+            <p className="font-semibold text-sm text-stone-800">Qualifier un projet</p>
+            <p className="text-xs text-muted">Chatbot de qualification</p>
+          </Link>
+        )}
         <Link
           href="/devis"
           className="bg-primary rounded-2xl p-4 flex flex-col gap-2 hover:bg-primary-dark transition"
         >
           <span className="text-2xl">✨</span>
-          <p className="font-semibold text-sm text-white">Créer un devis</p>
-          <p className="text-xs text-white/70">Prêt à copier sur WhatsApp</p>
+          <p className="font-semibold text-sm text-white">{isAdmin ? 'Créer un devis' : 'Nouvelle commande'}</p>
+          <p className="text-xs text-white/70">{isAdmin ? 'Prêt à copier sur WhatsApp' : 'Envoyer sur WhatsApp en 30 sec'}</p>
         </Link>
       </div>
 
@@ -146,7 +150,7 @@ export default function HomePage() {
       {recent.length > 0 && (
         <div>
           <div className="flex items-center justify-between mb-3">
-            <h2 className="font-semibold text-stone-800">Devis récents</h2>
+            <h2 className="font-semibold text-stone-800">{isAdmin ? 'Devis récents' : 'Commandes récentes'}</h2>
             <Link href="/historique" className="text-xs text-primary font-medium">Voir tout</Link>
           </div>
           <div className="space-y-2">
