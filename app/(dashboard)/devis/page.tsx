@@ -92,60 +92,58 @@ export default function NewDevisPage() {
     ))
   }
 
-  async function handleCopy() {
-    if (!selectedClient || lignes.length === 0) return
+  async function saveDevis(): Promise<string | null> {
+    if (!selectedClient || lignes.length === 0) return null
+    let clientId = selectedClient.id
 
+    if (showClientForm) {
+      const { data: created } = await supabase
+        .from('clients').insert(newClient).select().single()
+      if (created) {
+        clientId = created.id
+        setSelectedClient(created)
+        setClients(prev => [...prev, created])
+      }
+    }
+
+    const { total } = calcTotal(lignes, remiseType || null, remiseValeur ? parseFloat(remiseValeur) : null)
+    const { data: last } = await supabase
+      .from('devis').select('numero').order('numero', { ascending: false }).limit(1).single()
+    const numero = (last?.numero ?? 0) + 1
+
+    const { data: devis } = await supabase.from('devis').insert({
+      numero, titre, client_id: clientId, statut: 'Envoyé',
+      remise_type: remiseType || null,
+      remise_valeur: remiseValeur ? parseFloat(remiseValeur) : null,
+      mode_reglement: modeReglement,
+      acompte_pourcentage: settings.acompte_pourcentage,
+      total_ht: total,
+    }).select().single()
+
+    if (devis) {
+      await supabase.from('devis_lignes').insert(
+        lignes.map((l, i) => ({ devis_id: devis.id, type: l.type, libelle: l.libelle, description: l.description || null, prix: l.prix, ref_id: l.ref_id || null, ordre: i }))
+      )
+      await supabase.from('devis_statut_history').insert({ devis_id: devis.id, statut: 'Envoyé' })
+    }
+    return clientId
+  }
+
+  async function handleWhatsApp() {
+    if (!selectedClient?.whatsapp) return
     setSaving(true)
     try {
-      let clientId = selectedClient.id
+      await saveDevis()
+      setCopied(true)
+    } finally {
+      setSaving(false)
+    }
+  }
 
-      // Create new client if needed
-      if (showClientForm) {
-        const { data: created } = await supabase
-          .from('clients')
-          .insert(newClient)
-          .select()
-          .single()
-        if (created) {
-          clientId = created.id
-          setSelectedClient(created)
-          setClients(prev => [...prev, created])
-        }
-      }
-
-      const { sousTotal, remise, total } = calcTotal(
-        lignes,
-        remiseType || null,
-        remiseValeur ? parseFloat(remiseValeur) : null
-      )
-
-      // Get next numero
-      const { data: last } = await supabase
-        .from('devis').select('numero').order('numero', { ascending: false }).limit(1).single()
-      const numero = (last?.numero ?? 0) + 1
-
-      // Save devis
-      const { data: devis } = await supabase.from('devis').insert({
-        numero,
-        titre,
-        client_id: clientId,
-        statut: 'Envoyé',
-        remise_type: remiseType || null,
-        remise_valeur: remiseValeur ? parseFloat(remiseValeur) : null,
-        mode_reglement: modeReglement,
-        acompte_pourcentage: settings.acompte_pourcentage,
-        total_ht: total,
-      }).select().single()
-
-      if (devis) {
-        // Save lignes
-        await supabase.from('devis_lignes').insert(
-          lignes.map((l, i) => ({ devis_id: devis.id, type: l.type, libelle: l.libelle, description: l.description || null, prix: l.prix, ref_id: l.ref_id || null, ordre: i }))
-        )
-        // Save initial statut
-        await supabase.from('devis_statut_history').insert({ devis_id: devis.id, statut: 'Envoyé' })
-      }
-
+  async function handleCopy() {
+    setSaving(true)
+    try {
+      await saveDevis()
       await copyToClipboard(preview)
       setCopied(true)
     } finally {
@@ -415,32 +413,67 @@ export default function NewDevisPage() {
         </section>
       )}
 
-      {/* COPY BUTTON */}
+      {/* CTA BUTTONS */}
       {!copied ? (
-        <>
-          <button
-            onClick={handleCopy}
-            disabled={!canCopy || saving}
-            className={cn(
-              'w-full py-4 rounded-2xl font-bold text-base flex items-center justify-center gap-2 transition',
-              canCopy
-                ? 'bg-primary text-white hover:bg-primary-dark'
-                : 'bg-beige-200 text-muted cursor-not-allowed'
-            )}
-          >
-            <Copy size={20} />
-            {saving ? 'Enregistrement…' : 'Copier le devis'}
-          </button>
+        <div className="space-y-3">
+          {selectedClient?.whatsapp ? (
+            <>
+              {/* Primary: WhatsApp */}
+              <a
+                onClick={async (e) => { e.preventDefault(); if (canCopy && !saving) await handleWhatsApp() }}
+                href={canCopy ? `https://wa.me/${selectedClient.whatsapp.replace(/\D/g, '')}?text=${encodeURIComponent(preview)}` : '#'}
+                target="_blank"
+                rel="noopener noreferrer"
+                className={cn(
+                  'flex items-center justify-center gap-2 w-full py-4 rounded-2xl font-bold text-base transition',
+                  canCopy
+                    ? 'bg-[#25D366] text-white hover:bg-[#1ebe5d] cursor-pointer'
+                    : 'bg-beige-200 text-muted cursor-not-allowed pointer-events-none'
+                )}
+              >
+                <MessageCircle size={20} />
+                {saving ? 'Enregistrement…' : 'Envoyer sur WhatsApp'}
+              </a>
+              {/* Secondary: Copy */}
+              {canCopy && (
+                <button onClick={handleCopy}
+                  className="flex items-center justify-center gap-2 w-full py-3 rounded-2xl border border-border text-stone-600 text-sm font-medium hover:bg-beige-50 transition">
+                  <Copy size={16} /> Copier le texte sans envoyer
+                </button>
+              )}
+            </>
+          ) : (
+            <>
+              {/* Primary: Copy (no WhatsApp number) */}
+              <button
+                onClick={handleCopy}
+                disabled={!canCopy || saving}
+                className={cn(
+                  'w-full py-4 rounded-2xl font-bold text-base flex items-center justify-center gap-2 transition',
+                  canCopy ? 'bg-primary text-white hover:bg-primary-dark' : 'bg-beige-200 text-muted cursor-not-allowed'
+                )}
+              >
+                <Copy size={20} />
+                {saving ? 'Enregistrement…' : 'Copier le devis'}
+              </button>
+              {/* Warning: no WhatsApp */}
+              {canCopy && (
+                <p className="text-center text-xs text-amber-600 bg-amber-50 border border-amber-200 rounded-xl px-3 py-2">
+                  💡 Ajoute le numéro WhatsApp du client pour envoyer directement
+                </p>
+              )}
+            </>
+          )}
           {!canCopy && (
-            <p className="text-center text-xs text-muted -mt-3">
+            <p className="text-center text-xs text-muted">
               Sélectionne un client, ajoute un titre et au moins un élément
             </p>
           )}
-        </>
+        </div>
       ) : (
         <div className="space-y-3">
           <div className="flex items-center justify-center gap-2 w-full py-3.5 rounded-2xl bg-green-100 text-green-700 font-semibold text-sm">
-            <Check size={18} /> Devis copié et enregistré !
+            <Check size={18} /> Devis enregistré !
           </div>
           {selectedClient?.whatsapp && (
             <a
@@ -449,7 +482,7 @@ export default function NewDevisPage() {
               rel="noopener noreferrer"
               className="flex items-center justify-center gap-2 w-full py-4 rounded-2xl bg-[#25D366] text-white font-bold text-base hover:bg-[#1ebe5d] transition"
             >
-              <MessageCircle size={20} /> Envoyer sur WhatsApp
+              <MessageCircle size={20} /> Ouvrir WhatsApp
             </a>
           )}
           <button
