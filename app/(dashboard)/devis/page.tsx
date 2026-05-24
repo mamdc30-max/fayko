@@ -32,6 +32,7 @@ export default function NewDevisPage() {
   const [remiseType, setRemiseType] = useState<'fixe' | 'pourcentage' | ''>('')
   const [remiseValeur, setRemiseValeur] = useState('')
   const [modeReglement, setModeReglement] = useState<'acompte' | 'total'>('acompte')
+  const [showRemise, setShowRemise] = useState(false)
 
   // UI state
   const [openSection, setOpenSection] = useState<'forfaits' | 'elements' | 'libre' | null>(null)
@@ -124,8 +125,11 @@ export default function NewDevisPage() {
       .from('devis').select('numero').order('numero', { ascending: false }).limit(1).single()
     const numero = (last?.numero ?? 0) + 1
 
+    // Titre auto si vide (BtoC)
+    const titreToSave = titre.trim() || `Commande du ${new Date().toLocaleDateString('fr-FR')}`
+
     const { data: devis } = await supabase.from('devis').insert({
-      numero, titre, client_id: clientId, statut: 'Envoyé',
+      numero, titre: titreToSave, client_id: clientId, statut: 'Envoyé',
       remise_type: remiseType || null,
       remise_valeur: remiseValeur ? parseFloat(remiseValeur) : null,
       mode_reglement: modeReglement,
@@ -256,7 +260,10 @@ export default function NewDevisPage() {
 
       {/* TITRE */}
       <section className="bg-surface rounded-2xl border border-border p-4">
-        <label className="block font-semibold text-stone-800 text-sm mb-2">Titre de l'offre</label>
+        <label className="block font-semibold text-stone-800 text-sm mb-2">
+          {isAdmin ? "Titre de l'offre" : 'Intitulé'}
+          {!isAdmin && <span className="text-muted font-normal text-xs ml-1">(optionnel)</span>}
+        </label>
         <input
           value={titre}
           onChange={e => setTitre(e.target.value)}
@@ -415,29 +422,30 @@ export default function NewDevisPage() {
       </section>
 
       {/* REMISE */}
-      <section className="bg-surface rounded-2xl border border-border p-4 space-y-3">
-        <h2 className="font-semibold text-stone-800 text-sm">Remise (optionnelle)</h2>
-        <div className="flex gap-2">
-          <select
-            value={remiseType}
-            onChange={e => setRemiseType(e.target.value as 'fixe' | 'pourcentage' | '')}
-            className="border border-border rounded-xl px-3 py-2.5 text-sm bg-beige-50 focus:outline-none focus:ring-2 focus:ring-primary/30"
-          >
-            <option value="">Aucune</option>
-            <option value="fixe">Montant fixe (€)</option>
-            <option value="pourcentage">Pourcentage (%)</option>
-          </select>
-          {remiseType && (
-            <input
-              type="number"
-              value={remiseValeur}
-              onChange={e => setRemiseValeur(e.target.value)}
-              placeholder={remiseType === 'fixe' ? '0' : '0'}
-              className="flex-1 border border-border rounded-xl px-3 py-2.5 text-sm bg-beige-50 focus:outline-none focus:ring-2 focus:ring-primary/30"
-            />
-          )}
-        </div>
-      </section>
+      {(isAdmin || showRemise) ? (
+        <section className="bg-surface rounded-2xl border border-border p-4 space-y-3">
+          <div className="flex items-center justify-between">
+            <h2 className="font-semibold text-stone-800 text-sm">Remise (optionnelle)</h2>
+            {!isAdmin && <button onClick={() => { setShowRemise(false); setRemiseType(''); setRemiseValeur('') }} className="text-xs text-muted">Supprimer</button>}
+          </div>
+          <div className="flex gap-2">
+            <select value={remiseType} onChange={e => setRemiseType(e.target.value as 'fixe' | 'pourcentage' | '')}
+              className="border border-border rounded-xl px-3 py-2.5 text-sm bg-beige-50 focus:outline-none focus:ring-2 focus:ring-primary/30">
+              <option value="">Aucune</option>
+              <option value="fixe">Montant fixe (€)</option>
+              <option value="pourcentage">Pourcentage (%)</option>
+            </select>
+            {remiseType && (
+              <input type="number" value={remiseValeur} onChange={e => setRemiseValeur(e.target.value)}
+                className="flex-1 border border-border rounded-xl px-3 py-2.5 text-sm bg-beige-50 focus:outline-none focus:ring-2 focus:ring-primary/30" />
+            )}
+          </div>
+        </section>
+      ) : (
+        <button onClick={() => setShowRemise(true)} className="text-xs text-muted flex items-center gap-1 px-1">
+          + Ajouter une remise
+        </button>
+      )}
 
       {/* MODE RÈGLEMENT */}
       <section className="bg-surface rounded-2xl border border-border p-4">

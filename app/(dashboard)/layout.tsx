@@ -5,7 +5,7 @@ import { useRouter, usePathname } from 'next/navigation'
 import Link from 'next/link'
 import { supabase } from '@/lib/supabase'
 import { UserContext } from '@/lib/user-context'
-import { Home, MessageSquare, PlusCircle, Clock, Bell, Settings, LogOut, Menu, X } from 'lucide-react'
+import { Home, MessageSquare, PlusCircle, Clock, Bell, Settings, LogOut, Menu, X, Package } from 'lucide-react'
 import { cn } from '@/lib/utils'
 
 export default function DashboardLayout({ children }: { children: React.ReactNode }) {
@@ -19,16 +19,22 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
   const adminEmail = process.env.NEXT_PUBLIC_ADMIN_EMAIL
   const isAdmin = !adminEmail || userEmail === adminEmail
 
-  const navItems = [
+  const navItems = isAdmin ? [
     { href: '/', label: 'Accueil', icon: Home },
     { href: '/chatbot', label: 'Chatbot', icon: MessageSquare },
-    { href: '/devis', label: isAdmin ? 'Devis' : 'Commande', icon: PlusCircle },
+    { href: '/devis', label: 'Devis', icon: PlusCircle },
     { href: '/historique', label: 'Historique', icon: Clock },
     { href: '/relances', label: 'Relances', icon: Bell },
     { href: '/parametres', label: 'Paramètres', icon: Settings },
+  ] : [
+    { href: '/', label: 'Accueil', icon: Home },
+    { href: '/devis', label: 'Commande', icon: PlusCircle },
+    { href: '/historique', label: 'Commandes', icon: Clock },
+    { href: '/relances', label: 'Relances', icon: Bell },
+    { href: '/parametres', label: 'Catalogue', icon: Package },
   ]
 
-  const visibleNavItems = navItems.filter(item => item.href !== '/chatbot' || isAdmin)
+  const visibleNavItems = navItems
   const visibleMobileNav = visibleNavItems.slice(0, 5)
 
   useEffect(() => {
