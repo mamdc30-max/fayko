@@ -72,7 +72,12 @@ export default function RelancesPage() {
     <div className="space-y-5">
       <div>
         <h1 className="text-xl font-bold text-stone-800">Relances</h1>
-        <p className="text-xs text-muted mt-0.5">Devis envoyés depuis plus de 7 jours sans réponse</p>
+        <p className="text-xs text-muted mt-0.5">Commandes sans réponse depuis plus de 7 jours</p>
+      </div>
+
+      {/* Explication du fonctionnement J+7 */}
+      <div className="bg-primary-light border border-primary/20 rounded-xl px-4 py-3 text-xs text-primary leading-relaxed">
+        🔔 Une commande apparaît ici automatiquement <strong>7 jours après son envoi</strong>, si elle est toujours en statut "Envoyé" sans réponse.
       </div>
 
       {relances.length === 0 && effectuees.length === 0 && (

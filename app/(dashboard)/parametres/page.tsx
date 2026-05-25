@@ -419,14 +419,29 @@ export default function ParametresPage() {
           <div className="space-y-3">
             {templates.map(t => {
               const meta = {
-                paiement:       { emoji: '💳', label: 'Message de paiement' },
-                relance:        { emoji: '🔔', label: 'Message de relance' },
-                remerciement:   { emoji: '🎉', label: 'Message de remerciement' },
-              }[t.type] ?? { emoji: '💬', label: t.type }
+                paiement: {
+                  emoji: '💳',
+                  label: 'Lien de paiement',
+                  desc: 'Copié dans le récap de commande. Intègre ton lien Revolut, Wero, PayPal ou ton RIB directement dans le texte.',
+                },
+                relance: {
+                  emoji: '🔔',
+                  label: 'Relance J+7',
+                  desc: 'Apparaît automatiquement dans la page Relances si une commande reste sans réponse après 7 jours.',
+                },
+                remerciement: {
+                  emoji: '🎉',
+                  label: 'Remerciement',
+                  desc: 'Proposé automatiquement quand tu passes une commande au statut "Soldé".',
+                },
+              }[t.type] ?? { emoji: '💬', label: t.type, desc: '' }
 
               return editingTemplate === t.id ? (
                 <div key={t.id} className="bg-beige-50 rounded-xl p-3 border border-border space-y-2">
-                  <p className="text-xs font-semibold text-stone-700">{meta.emoji} {meta.label}</p>
+                  <div>
+                    <p className="text-xs font-semibold text-stone-700">{meta.emoji} {meta.label}</p>
+                    {meta.desc && <p className="text-[11px] text-muted mt-0.5 leading-relaxed">{meta.desc}</p>}
+                  </div>
                   <textarea
                     value={editTemplateContenu}
                     onChange={e => setEditTemplateContenu(e.target.value)}
@@ -444,13 +459,18 @@ export default function ParametresPage() {
                 </div>
               ) : (
                 <div key={t.id} className="rounded-xl border border-border hover:border-primary/20 transition overflow-hidden">
-                  <div className="flex items-center justify-between px-3 py-2.5 bg-beige-50 border-b border-border">
-                    <p className="text-xs font-semibold text-stone-700">{meta.emoji} {meta.label}</p>
-                    <button
-                      onClick={() => { setEditingTemplate(t.id); setEditTemplateContenu(t.contenu) }}
-                      className="flex items-center gap-1 text-xs text-primary font-medium hover:text-primary-dark transition">
-                      <Edit2 size={12} /> Modifier
-                    </button>
+                  <div className="px-3 py-2.5 bg-beige-50 border-b border-border">
+                    <div className="flex items-start justify-between gap-2">
+                      <div>
+                        <p className="text-xs font-semibold text-stone-700">{meta.emoji} {meta.label}</p>
+                        {meta.desc && <p className="text-[11px] text-muted mt-0.5 leading-relaxed">{meta.desc}</p>}
+                      </div>
+                      <button
+                        onClick={() => { setEditingTemplate(t.id); setEditTemplateContenu(t.contenu) }}
+                        className="flex items-center gap-1 text-xs text-primary font-medium hover:text-primary-dark transition shrink-0">
+                        <Edit2 size={12} /> Modifier
+                      </button>
+                    </div>
                   </div>
                   <p className="px-3 py-2.5 text-xs text-stone-600 whitespace-pre-line leading-relaxed">{t.contenu}</p>
                 </div>

@@ -140,7 +140,7 @@ export default function HomePage() {
           <div className="bg-amber-50 border border-amber-200 rounded-2xl p-4">
             <p className="text-sm font-semibold text-amber-800 mb-1">💡 Important avant de commencer</p>
             <p className="text-sm text-amber-700 leading-relaxed">
-              Configure tes messages WhatsApp pour y intégrer ton lien de paiement (Revolut, Lydia, virement…). 2 minutes pour ne plus jamais perdre un règlement.
+              Configure tes messages WhatsApp pour y intégrer ton lien de paiement (Revolut, Wero, PayPal, virement…). 2 minutes pour ne plus jamais perdre un règlement.
             </p>
           </div>
 

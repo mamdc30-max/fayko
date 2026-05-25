@@ -210,6 +210,20 @@ export default function DevisFichePage() {
         {statut !== devis.statut && (
           <p className="text-xs text-primary mt-2">* Enregistre pour sauvegarder le changement</p>
         )}
+        {/* Indicateur de relance J+7 */}
+        {statut === 'Envoyé' && (() => {
+          const daysSince = Math.floor((Date.now() - new Date(devis.created_at).getTime()) / 86_400_000)
+          const daysLeft = 7 - daysSince
+          return daysLeft > 0 ? (
+            <p className="text-xs text-muted mt-2">
+              🔔 Relance automatique dans <span className="font-semibold text-stone-700">{daysLeft} jour{daysLeft > 1 ? 's' : ''}</span> si pas de réponse
+            </p>
+          ) : (
+            <p className="text-xs text-amber-600 font-medium mt-2 flex items-center gap-1">
+              ⚠️ En attente de relance — visible dans la page Relances
+            </p>
+          )
+        })()}
       </section>
 
       {/* Titre */}
