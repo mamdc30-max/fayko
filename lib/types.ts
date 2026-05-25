@@ -93,6 +93,58 @@ export interface Tache {
   faite: boolean
   faite_at: string | null
   date: string
+  source: 'manuel' | 'agenda'
+  created_at: string
+}
+
+// ---- V2 Admin ----
+
+export type ProspectStatut =
+  | 'Rencontré'
+  | 'Contacté'
+  | 'Appel découverte'
+  | 'Proposition envoyée'
+  | 'Client'
+  | 'Perdu'
+
+export type CanalContact = 'événement' | 'linkedin' | 'réseau' | 'autre'
+export type TypeEvenement = 'networking' | 'conférence' | 'atelier' | 'autre'
+
+export interface Prospect {
+  id: string
+  prenom: string
+  nom: string
+  entreprise: string | null
+  secteur: string | null
+  canal: CanalContact | null
+  offre_associee: string | null
+  montant_estime: number
+  dernier_contact_at: string | null
+  statut: ProspectStatut
+  notes: string | null
+  created_at: string
+  updated_at: string
+}
+
+export interface ContactReseau {
+  id: string
+  prenom: string
+  entreprise: string | null
+  sujet: string | null
+  evenement: string | null
+  rencontre_at: string
+  photo_url: string | null
+  rappel_fait: boolean
+  converti: boolean
+  created_at: string
+}
+
+export interface EvenementReseau {
+  id: string
+  nom: string
+  date_event: string | null
+  lieu: string | null
+  type: TypeEvenement
   created_at: string
 }
 

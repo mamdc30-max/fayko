@@ -5,7 +5,7 @@ import { useRouter, usePathname } from 'next/navigation'
 import Link from 'next/link'
 import { supabase } from '@/lib/supabase'
 import { UserContext } from '@/lib/user-context'
-import { Home, MessageSquare, PlusCircle, Clock, Bell, Settings, LogOut, Menu, X, Package } from 'lucide-react'
+import { Home, MessageSquare, PlusCircle, Clock, Bell, Settings, LogOut, Menu, X, Package, Users2, Network, MapPin } from 'lucide-react'
 import { cn } from '@/lib/utils'
 
 export default function DashboardLayout({ children }: { children: React.ReactNode }) {
@@ -20,11 +20,14 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
   const isAdmin = !adminEmail || userEmail === adminEmail
 
   const navItems = isAdmin ? [
-    { href: '/', label: 'Accueil', icon: Home },
-    { href: '/chatbot', label: 'Chatbot', icon: MessageSquare },
+    { href: '/', label: 'Brief', icon: Home },
     { href: '/devis', label: 'Devis', icon: PlusCircle },
-    { href: '/historique', label: 'Historique', icon: Clock },
+    { href: '/prospects', label: 'Prospects', icon: Users2 },
+    { href: '/contacts', label: 'Réseau', icon: Network },
+    { href: '/evenements', label: 'Événements', icon: MapPin },
     { href: '/relances', label: 'Relances', icon: Bell },
+    { href: '/historique', label: 'Historique', icon: Clock },
+    { href: '/chatbot', label: 'Chatbot', icon: MessageSquare },
     { href: '/parametres', label: 'Paramètres', icon: Settings },
   ] : [
     { href: '/', label: 'Accueil', icon: Home },
