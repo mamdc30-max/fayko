@@ -4,8 +4,8 @@ import { useEffect, useState } from 'react'
 import Link from 'next/link'
 import { supabase } from '@/lib/supabase'
 import { formatDate, formatPrice, STATUT_COLORS } from '@/lib/utils'
-import { Bell } from 'lucide-react'
-import type { Devis, Client } from '@/lib/types'
+import { Bell, Plus, Check, Trash2 } from 'lucide-react'
+import type { Devis, Client, Tache } from '@/lib/types'
 import { useUserContext } from '@/lib/user-context'
 
 interface DevisWithClient extends Devis { clients: Client }
@@ -24,6 +24,8 @@ export default function HomePage() {
   const [catalogReady, setCatalogReady] = useState(false)
   const [showOnboarding, setShowOnboarding] = useState(false)
   const [loading, setLoading] = useState(true)
+  const [taches, setTaches] = useState<Tache[]>([])
+  const [newTache, setNewTache] = useState('')
   const { isAdmin } = useUserContext()
 
   useEffect(() => {
@@ -33,6 +35,17 @@ export default function HomePage() {
       const startOfMonth = new Date()
       startOfMonth.setDate(1)
       startOfMonth.setHours(0, 0, 0, 0)
+
+      // Tâches du jour (admin)
+      if (isAdmin) {
+        const today = new Date().toISOString().split('T')[0]
+        const { data: t } = await supabase
+          .from('taches')
+          .select('*')
+          .eq('date', today)
+          .order('created_at')
+        if (t) setTaches(t)
+      }
 
       const [{ data: allDevis }, { data: relancesData }] = await Promise.all([
         supabase.from('devis').select('*, clients(*)').order('created_at', { ascending: false }),
@@ -77,6 +90,24 @@ export default function HomePage() {
     }
     load()
   }, [isAdmin])
+
+  async function addTache() {
+    if (!newTache.trim()) return
+    const today = new Date().toISOString().split('T')[0]
+    const { data } = await supabase.from('taches').insert({ texte: newTache.trim(), date: today }).select().single()
+    if (data) setTaches(prev => [...prev, data])
+    setNewTache('')
+  }
+
+  async function toggleTache(id: string, faite: boolean) {
+    await supabase.from('taches').update({ faite, faite_at: faite ? new Date().toISOString() : null }).eq('id', id)
+    setTaches(prev => prev.map(t => t.id === id ? { ...t, faite, faite_at: faite ? new Date().toISOString() : null } : t))
+  }
+
+  async function deleteTache(id: string) {
+    await supabase.from('taches').delete().eq('id', id)
+    setTaches(prev => prev.filter(t => t.id !== id))
+  }
 
   function dismissOnboarding() {
     localStorage.setItem('onboarding_done', '1')
@@ -328,6 +359,71 @@ export default function HomePage() {
           </div>
         </div>
       )}
+
+      {/* Tâches du jour */}
+      <section className="bg-surface rounded-2xl border border-border p-4 space-y-3">
+        <div className="flex items-center justify-between">
+          <h2 className="font-semibold text-stone-800 text-sm">Tâches du jour</h2>
+          {taches.length > 0 && (
+            <span className="text-xs text-muted">
+              {taches.filter(t => t.faite).length}/{taches.length} faites
+            </span>
+          )}
+        </div>
+
+        {/* Ajout rapide */}
+        <div className="flex gap-2">
+          <input
+            value={newTache}
+            onChange={e => setNewTache(e.target.value)}
+            onKeyDown={e => e.key === 'Enter' && addTache()}
+            placeholder="Ajouter une tâche…"
+            className="flex-1 border border-border rounded-xl px-3 py-2 text-sm bg-beige-50 focus:outline-none focus:ring-2 focus:ring-primary/30"
+          />
+          <button
+            onClick={addTache}
+            disabled={!newTache.trim()}
+            className="bg-primary text-white px-3 py-2 rounded-xl disabled:opacity-40 hover:bg-primary-dark transition"
+          >
+            <Plus size={16} />
+          </button>
+        </div>
+
+        {/* Liste */}
+        {taches.length === 0 && (
+          <p className="text-xs text-muted py-1">Aucune tâche pour aujourd'hui — tape Entrée pour en ajouter</p>
+        )}
+        <div className="space-y-1">
+          {/* À faire */}
+          {taches.filter(t => !t.faite).map(t => (
+            <div key={t.id} className="flex items-center gap-2.5 py-1 group">
+              <button
+                onClick={() => toggleTache(t.id, true)}
+                className="w-5 h-5 rounded border-2 border-border hover:border-primary transition shrink-0"
+              />
+              <span className="text-sm text-stone-700 flex-1">{t.texte}</span>
+              <button
+                onClick={() => deleteTache(t.id)}
+                className="opacity-0 group-hover:opacity-100 p-1 text-muted hover:text-red-400 transition"
+              >
+                <Trash2 size={13} />
+              </button>
+            </div>
+          ))}
+          {/* Faites */}
+          {taches.filter(t => t.faite).map(t => (
+            <div key={t.id} className="flex items-center gap-2.5 py-1">
+              <button
+                onClick={() => toggleTache(t.id, false)}
+                className="w-5 h-5 rounded border-2 border-green-400 bg-green-50 flex items-center justify-center shrink-0"
+              >
+                <Check size={10} className="text-green-600" />
+              </button>
+              <span className="text-sm text-muted line-through flex-1">{t.texte}</span>
+            </div>
+          ))}
+        </div>
+      </section>
 
       {/* Actions rapides */}
       <div className="grid grid-cols-2 gap-3">

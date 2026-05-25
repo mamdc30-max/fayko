@@ -87,6 +87,15 @@ export interface Settings {
   acompte_pourcentage: number
 }
 
+export interface Tache {
+  id: string
+  texte: string
+  faite: boolean
+  faite_at: string | null
+  date: string
+  created_at: string
+}
+
 export interface DevisFormLigne {
   id: string
   type: LigneType
