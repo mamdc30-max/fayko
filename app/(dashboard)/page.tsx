@@ -191,6 +191,18 @@ export default function HomePage() {
           </p>
         </div>
 
+        {/* Stats */}
+        <div className="grid grid-cols-2 gap-3">
+          <div className="bg-primary rounded-2xl p-4 text-white">
+            <p className="text-xs text-white/70 mb-1">Encaissé ce mois</p>
+            <p className="text-2xl font-bold">{formatPrice(stats.caMois)}</p>
+          </div>
+          <div className="bg-surface rounded-2xl p-4 border border-border">
+            <p className="text-xs text-muted mb-1">En attente</p>
+            <p className="text-2xl font-bold text-amber-600">{formatPrice(stats.enAttente)}</p>
+          </div>
+        </div>
+
         {/* CTA principal */}
         <Link
           href="/devis"
