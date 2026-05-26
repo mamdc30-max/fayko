@@ -5,7 +5,7 @@ import { useRouter, usePathname } from 'next/navigation'
 import Link from 'next/link'
 import { supabase } from '@/lib/supabase'
 import { UserContext } from '@/lib/user-context'
-import { Home, PlusCircle, Clock, Bell, Settings, LogOut, Menu, X, Package, Users2, Network, ListChecks, Newspaper, FolderKanban } from 'lucide-react'
+import { Home, PlusCircle, Clock, Bell, Settings, LogOut, Menu, X, Package, Users2, Network, ListChecks, FolderKanban, Lightbulb, CalendarCheck } from 'lucide-react'
 import { cn } from '@/lib/utils'
 
 export default function DashboardLayout({ children }: { children: React.ReactNode }) {
@@ -21,11 +21,11 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
   const navItems = isAdmin ? [
     { href: '/', label: 'Brief', icon: Home },
     { href: '/taches', label: 'Tâches', icon: ListChecks },
+    { href: '/idees', label: 'Idées', icon: Lightbulb },
     { href: '/projets', label: 'Projets', icon: FolderKanban },
-    { href: '/devis', label: 'Devis', icon: PlusCircle },
     { href: '/prospects', label: 'Prospects', icon: Users2 },
     { href: '/contacts', label: 'Réseau', icon: Network },
-    { href: '/veille', label: 'Veille', icon: Newspaper },
+    { href: '/hebdo', label: 'Hebdo', icon: CalendarCheck },
     { href: '/parametres', label: 'Paramètres', icon: Settings },
   ] : [
     { href: '/', label: 'Accueil', icon: Home },
