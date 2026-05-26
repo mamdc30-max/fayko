@@ -96,6 +96,8 @@ export interface Tache {
   echeance: string | null
   priorite: 'haute' | 'normale' | 'basse'
   source: 'manuel' | 'agenda'
+  projet_id: string | null
+  etape_id: string | null
   created_at: string
 }
 
