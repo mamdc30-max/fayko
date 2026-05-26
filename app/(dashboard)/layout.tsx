@@ -5,7 +5,7 @@ import { useRouter, usePathname } from 'next/navigation'
 import Link from 'next/link'
 import { supabase } from '@/lib/supabase'
 import { UserContext } from '@/lib/user-context'
-import { Home, MessageSquare, PlusCircle, Clock, Bell, Settings, LogOut, Menu, X, Package, Users2, Network, MapPin, ListChecks, Newspaper, FolderKanban } from 'lucide-react'
+import { Home, PlusCircle, Clock, Bell, Settings, LogOut, Menu, X, Package, Users2, Network, ListChecks, Newspaper, FolderKanban } from 'lucide-react'
 import { cn } from '@/lib/utils'
 
 export default function DashboardLayout({ children }: { children: React.ReactNode }) {
@@ -13,7 +13,6 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
   const pathname = usePathname()
   const [checking, setChecking] = useState(true)
   const [menuOpen, setMenuOpen] = useState(false)
-  const [relancesCount, setRelancesCount] = useState(0)
   const [userEmail, setUserEmail] = useState<string | null>(null)
 
   const adminEmail = process.env.NEXT_PUBLIC_ADMIN_EMAIL
@@ -26,11 +25,7 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
     { href: '/devis', label: 'Devis', icon: PlusCircle },
     { href: '/prospects', label: 'Prospects', icon: Users2 },
     { href: '/contacts', label: 'Réseau', icon: Network },
-    { href: '/evenements', label: 'Événements', icon: MapPin },
     { href: '/veille', label: 'Veille', icon: Newspaper },
-    { href: '/relances', label: 'Relances', icon: Bell },
-    { href: '/historique', label: 'Historique', icon: Clock },
-    { href: '/chatbot', label: 'Chatbot', icon: MessageSquare },
     { href: '/parametres', label: 'Paramètres', icon: Settings },
   ] : [
     { href: '/', label: 'Accueil', icon: Home },
@@ -51,26 +46,6 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
       }
     })
   }, [router])
-
-  useEffect(() => {
-    async function fetchRelances() {
-      const sevenDaysAgo = new Date()
-      sevenDaysAgo.setDate(sevenDaysAgo.getDate() - 7)
-      const { data } = await supabase
-        .from('devis')
-        .select('id, relances(effectuee)')
-        .eq('statut', 'Envoyé')
-        .lt('created_at', sevenDaysAgo.toISOString())
-      if (data) {
-        const pending = data.filter(d =>
-          !d.relances || d.relances.length === 0 ||
-          (d.relances as { effectuee: boolean }[]).every(r => !r.effectuee)
-        )
-        setRelancesCount(pending.length)
-      }
-    }
-    fetchRelances()
-  }, [pathname])
 
   async function handleLogout() {
     await supabase.auth.signOut()
@@ -106,11 +81,6 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
             >
               <Icon size={18} />
               {label}
-              {href === '/relances' && relancesCount > 0 && (
-                <span className="ml-auto bg-primary text-white text-xs rounded-full w-5 h-5 flex items-center justify-center">
-                  {relancesCount}
-                </span>
-              )}
             </Link>
           ))}
         </nav>
@@ -148,11 +118,6 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
               >
                 <Icon size={20} />
                 {label}
-                {href === '/relances' && relancesCount > 0 && (
-                  <span className="ml-auto bg-primary text-white text-xs rounded-full w-5 h-5 flex items-center justify-center">
-                    {relancesCount}
-                  </span>
-                )}
               </Link>
             ))}
             <button
@@ -167,11 +132,6 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
 
       {/* Main content */}
       <main className="md:ml-56 pt-14 md:pt-0 pb-20 md:pb-0 min-h-screen">
-        {relancesCount > 0 && pathname !== '/relances' && (
-          <Link href="/relances" className="block bg-primary text-white text-xs font-medium text-center py-2 px-4 hover:bg-primary-dark transition">
-            🔔 {relancesCount} relance{relancesCount > 1 ? 's' : ''} en attente — cliquer pour voir
-          </Link>
-        )}
         <div className="max-w-2xl mx-auto px-4 py-6">
           <UserContext.Provider value={{ isAdmin }}>
             {children}
@@ -192,11 +152,6 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
           >
             <Icon size={20} />
             <span className="text-[10px]">{label}</span>
-            {href === '/relances' && relancesCount > 0 && (
-              <span className="absolute top-1 right-1/4 bg-primary text-white text-[9px] rounded-full w-4 h-4 flex items-center justify-center">
-                {relancesCount}
-              </span>
-            )}
           </Link>
         ))}
       </nav>
