@@ -5,7 +5,7 @@ import Link from 'next/link'
 import { supabase } from '@/lib/supabase'
 import { formatDate, formatPrice, STATUT_COLORS } from '@/lib/utils'
 import { Bell, Plus, Check, Trash2, CalendarDays, Network } from 'lucide-react'
-import type { Devis, Client, Tache, ContactReseau, AutomationLog } from '@/lib/types'
+import type { Devis, Client, Tache, ContactReseau, AutomationLog, DailyFocus } from '@/lib/types'
 import { useUserContext } from '@/lib/user-context'
 
 interface DevisWithClient extends Devis { clients: Client }
@@ -27,6 +27,7 @@ export default function HomePage() {
   const [showAllTaches, setShowAllTaches] = useState(false)
   const [contactsRelance, setContactsRelance] = useState<ContactReseau[]>([])
   const [autoLogs, setAutoLogs]               = useState<AutomationLog[]>([])
+  const [focusItems, setFocusItems]           = useState<DailyFocus[]>([])
   const { isAdmin } = useUserContext()
 
   useEffect(() => {
@@ -52,6 +53,15 @@ export default function HomePage() {
           .eq('rappel_fait', false)
           .lte('created_at', threeDaysAgo.toISOString())
         if (cr) setContactsRelance(cr)
+
+        // Focus du jour
+        const { data: focus } = await supabase
+          .from('daily_focus')
+          .select('*')
+          .eq('date', today)
+          .eq('fait', false)
+          .order('priorite')
+        if (focus) setFocusItems(focus)
 
         // Derniers logs d'automation (1 par tâche)
         const { data: logs } = await supabase
@@ -129,6 +139,11 @@ export default function HomePage() {
   async function deleteTache(id: string) {
     await supabase.from('taches').delete().eq('id', id)
     setTaches(prev => prev.filter(t => t.id !== id))
+  }
+
+  async function markFocusDone(id: string) {
+    await supabase.from('daily_focus').update({ fait: true }).eq('id', id)
+    setFocusItems(prev => prev.filter(f => f.id !== id))
   }
 
   async function markRappelFait(id: string) {
@@ -306,6 +321,24 @@ export default function HomePage() {
   const doneTaches = manualTaches.filter(t => t.faite)
   const visiblePending = showAllTaches ? pendingManual : pendingManual.slice(0, 3)
 
+  const FOCUS_CONFIG: Record<string, { dot: string; icon: string; href?: string }> = {
+    '1-crm':      { dot: 'bg-red-500',    icon: '🔴' },
+    '2-crm':      { dot: 'bg-amber-400',  icon: '🟡' },
+    '3-crm':      { dot: 'bg-amber-300',  icon: '🟡' },
+    '1-sourcing': { dot: 'bg-blue-400',   icon: '🔵' },
+    '2-sourcing': { dot: 'bg-blue-300',   icon: '🔵' },
+    '3-sourcing': { dot: 'bg-blue-200',   icon: '🔵' },
+    '1-contact':  { dot: 'bg-primary',    icon: '🟠' },
+    '2-contact':  { dot: 'bg-primary',    icon: '🟠' },
+    '3-contact':  { dot: 'bg-primary',    icon: '🟠' },
+  }
+
+  function focusHref(item: DailyFocus): string | undefined {
+    if (item.lien_type === 'prospect') return `/prospects`
+    if (item.lien_type === 'contact_reseau') return `/contacts`
+    return undefined
+  }
+
   return (
     <div className="space-y-5">
       {/* En-tête */}
@@ -313,6 +346,51 @@ export default function HomePage() {
         <p className="text-xs text-muted capitalize">{todayLabel}</p>
         <h1 className="text-2xl font-bold text-stone-800">Bonjour 👋</h1>
       </div>
+
+      {/* Block 0 — Focus du jour (si des items existent) */}
+      {focusItems.length > 0 && (
+        <section className="bg-stone-900 rounded-2xl p-4 space-y-3">
+          <div className="flex items-center justify-between">
+            <h2 className="font-bold text-white text-sm flex items-center gap-2">
+              ⭐ Focus du jour
+              <span className="bg-white/20 text-white text-xs px-2 py-0.5 rounded-full font-normal">
+                {focusItems.length} action{focusItems.length > 1 ? 's' : ''}
+              </span>
+            </h2>
+          </div>
+          <div className="space-y-2">
+            {focusItems.map(item => {
+              const cfg = FOCUS_CONFIG[`${item.priorite}-${item.categorie}`]
+              const href = focusHref(item)
+              const Inner = (
+                <div className="flex items-start gap-3">
+                  <span className={`w-2 h-2 rounded-full shrink-0 mt-1.5 ${cfg?.dot ?? 'bg-white/40'}`} />
+                  <div className="flex-1 min-w-0">
+                    <p className="text-white text-sm font-medium leading-snug">{item.action}</p>
+                    {item.contexte && (
+                      <p className="text-white/50 text-xs mt-0.5">{item.contexte}</p>
+                    )}
+                  </div>
+                  <button
+                    onClick={(e) => { e.preventDefault(); e.stopPropagation(); markFocusDone(item.id) }}
+                    className="shrink-0 w-6 h-6 rounded-full border border-white/30 hover:bg-white/20 flex items-center justify-center transition"
+                    title="Marquer comme fait"
+                  >
+                    <Check size={11} className="text-white/60" />
+                  </button>
+                </div>
+              )
+              return href ? (
+                <Link key={item.id} href={href} className="block hover:bg-white/5 rounded-xl px-2 py-1 -mx-2 transition">
+                  {Inner}
+                </Link>
+              ) : (
+                <div key={item.id} className="px-2 py-1">{Inner}</div>
+              )
+            })}
+          </div>
+        </section>
+      )}
 
       {/* Block 1 — Agenda du jour */}
       <section className="space-y-2">

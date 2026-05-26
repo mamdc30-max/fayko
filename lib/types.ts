@@ -168,6 +168,25 @@ export interface ClientDossier extends Client {
   devis: Devis[]
 }
 
+// ---- Daily focus ----
+
+export type FocusCategorie = 'crm' | 'sourcing' | 'contact'
+export type FocusPriorite = 1 | 2 | 3
+
+export interface DailyFocus {
+  id: string
+  user_id?: string
+  date: string
+  categorie: FocusCategorie
+  priorite: FocusPriorite
+  action: string
+  contexte: string | null
+  lien_type: string | null
+  lien_id: string | null
+  fait: boolean
+  created_at: string
+}
+
 // ---- Automation logs ----
 
 export interface AutomationLog {
