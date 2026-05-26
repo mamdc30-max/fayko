@@ -5,45 +5,53 @@ import { useRouter, usePathname } from 'next/navigation'
 import Link from 'next/link'
 import { supabase } from '@/lib/supabase'
 import { UserContext } from '@/lib/user-context'
-import { Home, PlusCircle, Clock, Bell, Settings, LogOut, Menu, X, Package, Users2, Network, ListChecks, FolderKanban, Lightbulb, CalendarCheck } from 'lucide-react'
+import {
+  Home, PlusCircle, Clock, Bell, Settings, LogOut, Menu, X,
+  Package, Users2, ListChecks, FolderKanban, Lightbulb, CalendarCheck,
+} from 'lucide-react'
 import { cn } from '@/lib/utils'
 
+const ADMIN_NAV = [
+  { href: '/',          label: 'Brief',     icon: Home },
+  { href: '/idees',     label: 'Idées',     icon: Lightbulb },
+  { href: '/projets',   label: 'Projets',   icon: FolderKanban },
+  { href: '/taches',    label: 'Tâches',    icon: ListChecks },
+  { href: '/prospects', label: 'Prospects', icon: Users2 },
+  { href: '/hebdo',     label: 'Hebdo',     icon: CalendarCheck },
+  { href: '/parametres',label: 'Paramètres',icon: Settings },
+]
+
+// Visible dans sidebar + burger, absent de la barre mobile
+const ADMIN_EXTRA = [
+  { href: '/devis', label: 'Devis', icon: PlusCircle },
+]
+
+const CLIENT_NAV = [
+  { href: '/',           label: 'Accueil',   icon: Home },
+  { href: '/devis',      label: 'Créer',     icon: PlusCircle },
+  { href: '/historique', label: 'Historique',icon: Clock },
+  { href: '/relances',   label: 'Relances',  icon: Bell },
+  { href: '/parametres', label: 'Catalogue', icon: Package },
+]
+
 export default function DashboardLayout({ children }: { children: React.ReactNode }) {
-  const router = useRouter()
+  const router   = useRouter()
   const pathname = usePathname()
-  const [checking, setChecking] = useState(true)
-  const [menuOpen, setMenuOpen] = useState(false)
+  const [checking,  setChecking]  = useState(true)
+  const [menuOpen,  setMenuOpen]  = useState(false)
   const [userEmail, setUserEmail] = useState<string | null>(null)
 
   const adminEmail = process.env.NEXT_PUBLIC_ADMIN_EMAIL
-  const isAdmin = !adminEmail || userEmail === adminEmail
+  const isAdmin    = !adminEmail || userEmail === adminEmail
 
-  const navItems = isAdmin ? [
-    { href: '/', label: 'Brief', icon: Home },
-    { href: '/taches', label: 'Tâches', icon: ListChecks },
-    { href: '/idees', label: 'Idées', icon: Lightbulb },
-    { href: '/projets', label: 'Projets', icon: FolderKanban },
-    { href: '/prospects', label: 'Prospects', icon: Users2 },
-    { href: '/contacts', label: 'Réseau', icon: Network },
-    { href: '/hebdo', label: 'Hebdo', icon: CalendarCheck },
-    { href: '/parametres', label: 'Paramètres', icon: Settings },
-  ] : [
-    { href: '/', label: 'Accueil', icon: Home },
-    { href: '/devis', label: 'Créer', icon: PlusCircle },
-    { href: '/historique', label: 'Historique', icon: Clock },
-    { href: '/relances', label: 'Relances', icon: Bell },
-    { href: '/parametres', label: 'Catalogue', icon: Package },
-  ]
-
-  const mobileNavItems = navItems.slice(0, 5)
+  const navItems   = isAdmin ? ADMIN_NAV    : CLIENT_NAV
+  const extraItems = isAdmin ? ADMIN_EXTRA  : []
+  const mobileNav  = navItems.slice(0, 5)   // Brief · Idées · Projets · Tâches · Prospects
 
   useEffect(() => {
     supabase.auth.getSession().then(({ data }) => {
       if (!data.session) router.replace('/login')
-      else {
-        setChecking(false)
-        setUserEmail(data.session.user.email ?? null)
-      }
+      else { setChecking(false); setUserEmail(data.session.user.email ?? null) }
     })
   }, [router])
 
@@ -60,29 +68,42 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
     )
   }
 
+  function NavLink({ href, label, icon: Icon, onClick }: { href: string; label: string; icon: React.ElementType; onClick?: () => void }) {
+    return (
+      <Link
+        href={href}
+        onClick={onClick}
+        className={cn(
+          'flex items-center gap-3 px-3 py-2.5 rounded-xl text-sm font-medium transition',
+          pathname === href
+            ? 'bg-primary-light text-primary'
+            : 'text-muted hover:bg-beige-100 hover:text-stone-800'
+        )}
+      >
+        <Icon size={18} />
+        {label}
+      </Link>
+    )
+  }
+
   return (
     <div className="min-h-screen bg-beige">
+
       {/* Desktop sidebar */}
       <aside className="hidden md:flex fixed left-0 top-0 h-full w-56 bg-surface border-r border-border flex-col z-30">
         <div className="p-6 border-b border-border">
           <span className="text-xl font-bold text-primary">✨ Fayko</span>
         </div>
         <nav className="flex-1 p-3 space-y-1 overflow-y-auto">
-          {navItems.map(({ href, label, icon: Icon }) => (
-            <Link
-              key={href}
-              href={href}
-              className={cn(
-                'flex items-center gap-3 px-3 py-2.5 rounded-xl text-sm font-medium transition',
-                pathname === href
-                  ? 'bg-primary-light text-primary'
-                  : 'text-muted hover:bg-beige-100 hover:text-stone-800'
-              )}
-            >
-              <Icon size={18} />
-              {label}
-            </Link>
-          ))}
+          {navItems.map(item => <NavLink key={item.href} {...item} />)}
+          {extraItems.length > 0 && (
+            <>
+              <div className="pt-3 pb-1 px-3">
+                <span className="text-[10px] font-semibold text-stone-300 uppercase tracking-wider">Outils</span>
+              </div>
+              {extraItems.map(item => <NavLink key={item.href} {...item} />)}
+            </>
+          )}
         </nav>
         <div className="p-3 border-t border-border">
           <button
@@ -102,30 +123,31 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
         </button>
       </header>
 
-      {/* Mobile full menu */}
+      {/* Mobile burger menu */}
       {menuOpen && (
-        <div className="md:hidden fixed inset-0 bg-surface z-20 pt-14">
+        <div className="md:hidden fixed inset-0 bg-surface z-20 pt-14 overflow-y-auto">
           <nav className="p-4 space-y-1">
-            {navItems.map(({ href, label, icon: Icon }) => (
-              <Link
-                key={href}
-                href={href}
-                onClick={() => setMenuOpen(false)}
-                className={cn(
-                  'flex items-center gap-3 px-4 py-3 rounded-xl text-sm font-medium transition',
-                  pathname === href ? 'bg-primary-light text-primary' : 'text-stone-700'
-                )}
-              >
-                <Icon size={20} />
-                {label}
-              </Link>
+            {navItems.map(item => (
+              <NavLink key={item.href} {...item} onClick={() => setMenuOpen(false)} />
             ))}
-            <button
-              onClick={handleLogout}
-              className="flex items-center gap-3 px-4 py-3 rounded-xl text-sm text-muted w-full mt-4"
-            >
-              <LogOut size={20} /> Déconnexion
-            </button>
+            {extraItems.length > 0 && (
+              <>
+                <div className="pt-4 pb-1 px-4">
+                  <span className="text-[10px] font-semibold text-stone-300 uppercase tracking-wider">Outils</span>
+                </div>
+                {extraItems.map(item => (
+                  <NavLink key={item.href} {...item} onClick={() => setMenuOpen(false)} />
+                ))}
+              </>
+            )}
+            <div className="pt-4 border-t border-border mt-4">
+              <button
+                onClick={handleLogout}
+                className="flex items-center gap-3 px-4 py-3 rounded-xl text-sm text-muted w-full"
+              >
+                <LogOut size={20} /> Déconnexion
+              </button>
+            </div>
           </nav>
         </div>
       )}
@@ -139,14 +161,14 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
         </div>
       </main>
 
-      {/* Mobile bottom navigation */}
+      {/* Mobile bottom nav — Phase 1 uniquement */}
       <nav className="md:hidden fixed bottom-0 left-0 right-0 bg-surface border-t border-border z-30 flex">
-        {mobileNavItems.map(({ href, label, icon: Icon }) => (
+        {mobileNav.map(({ href, label, icon: Icon }) => (
           <Link
             key={href}
             href={href}
             className={cn(
-              'flex-1 flex flex-col items-center justify-center py-2 text-xs gap-1 relative',
+              'flex-1 flex flex-col items-center justify-center py-2 text-xs gap-1',
               pathname === href ? 'text-primary' : 'text-muted'
             )}
           >
