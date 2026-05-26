@@ -5,7 +5,7 @@ import Link from 'next/link'
 import { supabase } from '@/lib/supabase'
 import { formatDate, formatPrice, STATUT_COLORS } from '@/lib/utils'
 import { Bell, Plus, Check, Trash2, CalendarDays, Network } from 'lucide-react'
-import type { Devis, Client, Tache, ContactReseau } from '@/lib/types'
+import type { Devis, Client, Tache, ContactReseau, AutomationLog } from '@/lib/types'
 import { useUserContext } from '@/lib/user-context'
 
 interface DevisWithClient extends Devis { clients: Client }
@@ -26,6 +26,7 @@ export default function HomePage() {
   const [newTache, setNewTache] = useState('')
   const [showAllTaches, setShowAllTaches] = useState(false)
   const [contactsRelance, setContactsRelance] = useState<ContactReseau[]>([])
+  const [autoLogs, setAutoLogs]               = useState<AutomationLog[]>([])
   const { isAdmin } = useUserContext()
 
   useEffect(() => {
@@ -51,6 +52,22 @@ export default function HomePage() {
           .eq('rappel_fait', false)
           .lte('created_at', threeDaysAgo.toISOString())
         if (cr) setContactsRelance(cr)
+
+        // Derniers logs d'automation (1 par tâche)
+        const { data: logs } = await supabase
+          .from('automation_logs')
+          .select('*')
+          .order('ran_at', { ascending: false })
+          .limit(6)
+        if (logs) {
+          // Garder seulement la dernière exécution de chaque task
+          const seen = new Set<string>()
+          const deduplicated = logs.filter(l => {
+            if (seen.has(l.task_name)) return false
+            seen.add(l.task_name); return true
+          })
+          setAutoLogs(deduplicated)
+        }
       }
 
       const [{ data: allDevis }, { data: relancesData }] = await Promise.all([
@@ -422,6 +439,36 @@ export default function HomePage() {
           <span className="font-medium">{relances.length} devis en attente de relance</span>
           <span className="ml-auto text-xs">→</span>
         </Link>
+      )}
+
+      {/* Block 4 — Statut automations */}
+      {autoLogs.length > 0 && (
+        <section className="space-y-1.5">
+          <h2 className="font-semibold text-stone-800 text-sm text-xs text-muted uppercase tracking-wide">
+            ⚙️ Automations
+          </h2>
+          <div className="bg-surface rounded-2xl border border-border divide-y divide-border">
+            {autoLogs.map(log => {
+              const icon  = log.status === 'success' ? '✅' : log.status === 'partial' ? '⚠️' : '❌'
+              const label = ({ brief_agenda: 'Brief agenda', veille_hebdo: 'Veille hebdo' } as Record<string, string>)[log.task_name] ?? log.task_name
+              const heure = new Date(log.ran_at).toLocaleTimeString('fr-FR', { hour: '2-digit', minute: '2-digit' })
+              const isToday = new Date(log.ran_at).toISOString().split('T')[0] === new Date().toISOString().split('T')[0]
+              const whenLabel = isToday ? `Aujourd'hui ${heure}` : new Date(log.ran_at).toLocaleDateString('fr-FR', { weekday: 'short', day: 'numeric', month: 'short' })
+              return (
+                <div key={log.id} className="flex items-center gap-3 px-3 py-2.5 text-xs">
+                  <span>{icon}</span>
+                  <span className="font-medium text-stone-700">{label}</span>
+                  <span className="text-muted ml-auto">{whenLabel}</span>
+                </div>
+              )
+            })}
+          </div>
+          {autoLogs.some(l => l.status !== 'success') && (
+            <p className="text-xs text-amber-600 px-1">
+              ⚠️ Certaines automations ont rencontré des problèmes
+            </p>
+          )}
+        </section>
       )}
     </div>
   )

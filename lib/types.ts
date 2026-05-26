@@ -168,6 +168,17 @@ export interface ClientDossier extends Client {
   devis: Devis[]
 }
 
+// ---- Automation logs ----
+
+export interface AutomationLog {
+  id: string
+  user_id?: string
+  task_name: string
+  status: 'success' | 'error' | 'partial'
+  summary: string | null
+  ran_at: string
+}
+
 // ---- Veille hebdo ----
 
 export type VeilleCategorie = 'communication' | 'diaspora' | 'linkedin' | 'outils'

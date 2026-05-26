@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { createClient } from '@supabase/supabase-js'
+import { logAutomation } from '@/lib/automation-logger'
 
 // POST /api/import-agenda
 // Body: { items: string[] }  (textes des événements)
@@ -42,6 +43,14 @@ export async function POST(req: NextRequest) {
       }))
     )
   }
+
+  await logAutomation({
+    task_name: 'brief_agenda',
+    status: 'success',
+    summary: items.length > 0
+      ? `${items.length} événement${items.length > 1 ? 's' : ''} importé${items.length > 1 ? 's' : ''}`
+      : 'Agenda vide aujourd\'hui',
+  })
 
   return NextResponse.json({ success: true, count: items.length })
 }

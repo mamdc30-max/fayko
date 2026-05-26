@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from 'next/server'
 import { createClient } from '@supabase/supabase-js'
 import Parser from 'rss-parser'
 import { VEILLE_FEEDS } from '@/lib/veille-feeds'
+import { logAutomation } from '@/lib/automation-logger'
 
 // ─────────────────────────────────────────────────────────────────────────────
 // POST /api/refresh-veille
@@ -156,6 +157,14 @@ export async function POST(req: NextRequest) {
       return NextResponse.json({ error: insertErr.message }, { status: 500 })
     }
   }
+
+  await logAutomation({
+    task_name: 'veille_hebdo',
+    status: errors.length > 0 && rows.length === 0 ? 'error' : errors.length > 0 ? 'partial' : 'success',
+    summary: rows.length > 0
+      ? `${rows.length} contenu${rows.length > 1 ? 's' : ''} récupéré${rows.length > 1 ? 's' : ''}${errors.length > 0 ? ` (${errors.length} flux en erreur)` : ''}`
+      : `Aucun contenu récupéré · ${errors.length} flux en erreur`,
+  })
 
   return NextResponse.json({
     success: true,
