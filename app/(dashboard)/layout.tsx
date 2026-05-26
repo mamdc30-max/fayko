@@ -12,7 +12,7 @@ import {
 import { cn } from '@/lib/utils'
 
 const ADMIN_NAV = [
-  { href: '/',          label: 'Brief',     icon: Home },
+  { href: '/',          label: 'Focus',     icon: Home },
   { href: '/idees',     label: 'Idées',     icon: Lightbulb },
   { href: '/projets',   label: 'Projets',   icon: FolderKanban },
   { href: '/taches',    label: 'Tâches',    icon: ListChecks },
