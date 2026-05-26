@@ -93,6 +93,8 @@ export interface Tache {
   faite: boolean
   faite_at: string | null
   date: string
+  echeance: string | null
+  priorite: 'haute' | 'normale' | 'basse'
   source: 'manuel' | 'agenda'
   created_at: string
 }
