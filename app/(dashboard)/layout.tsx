@@ -7,18 +7,18 @@ import { supabase } from '@/lib/supabase'
 import { UserContext } from '@/lib/user-context'
 import {
   Home, PlusCircle, Clock, Bell, Settings, LogOut, Menu, X,
-  Package, Users2, ListChecks, FolderKanban, Lightbulb, CalendarCheck,
+  Package, Users2, Network, FolderKanban, Lightbulb, CalendarCheck,
 } from 'lucide-react'
 import { cn } from '@/lib/utils'
 
 const ADMIN_NAV = [
-  { href: '/',          label: 'Focus',     icon: Home },
-  { href: '/idees',     label: 'Idées',     icon: Lightbulb },
-  { href: '/projets',   label: 'Projets',   icon: FolderKanban },
-  { href: '/taches',    label: 'Tâches',    icon: ListChecks },
-  { href: '/prospects', label: 'Prospects', icon: Users2 },
-  { href: '/hebdo',     label: 'Hebdo',     icon: CalendarCheck },
-  { href: '/parametres',label: 'Paramètres',icon: Settings },
+  { href: '/',           label: 'Focus',     icon: Home },
+  { href: '/idees',      label: 'Idées',     icon: Lightbulb },
+  { href: '/projets',    label: 'Projets',   icon: FolderKanban },
+  { href: '/prospects',  label: 'Prospects', icon: Users2 },
+  { href: '/reseau',     label: 'Réseau',    icon: Network },
+  { href: '/hebdo',      label: 'Hebdo',     icon: CalendarCheck },
+  { href: '/parametres', label: 'Paramètres',icon: Settings },
 ]
 
 // Visible dans sidebar + burger, absent de la barre mobile
@@ -44,9 +44,9 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
   const adminEmail = process.env.NEXT_PUBLIC_ADMIN_EMAIL
   const isAdmin    = !adminEmail || userEmail === adminEmail
 
-  const navItems   = isAdmin ? ADMIN_NAV    : CLIENT_NAV
-  const extraItems = isAdmin ? ADMIN_EXTRA  : []
-  const mobileNav  = navItems.slice(0, 5)   // Brief · Idées · Projets · Tâches · Prospects
+  const navItems   = isAdmin ? ADMIN_NAV   : CLIENT_NAV
+  const extraItems = isAdmin ? ADMIN_EXTRA : []
+  const mobileNav  = navItems.slice(0, 5)  // Focus · Idées · Projets · Prospects · Réseau
 
   useEffect(() => {
     supabase.auth.getSession().then(({ data }) => {
@@ -68,7 +68,9 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
     )
   }
 
-  function NavLink({ href, label, icon: Icon, onClick }: { href: string; label: string; icon: React.ElementType; onClick?: () => void }) {
+  function NavLink({ href, label, icon: Icon, onClick }: {
+    href: string; label: string; icon: React.ElementType; onClick?: () => void
+  }) {
     return (
       <Link
         href={href}
@@ -161,7 +163,7 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
         </div>
       </main>
 
-      {/* Mobile bottom nav — Phase 1 uniquement */}
+      {/* Mobile bottom nav */}
       <nav className="md:hidden fixed bottom-0 left-0 right-0 bg-surface border-t border-border z-30 flex">
         {mobileNav.map(({ href, label, icon: Icon }) => (
           <Link

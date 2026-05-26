@@ -173,9 +173,12 @@ export interface Etape {
   created_at: string
 }
 
+export type ContactQualification = 'prospect' | 'prestataire' | 'partenaire' | 'a_qualifier'
+
 export interface ContactReseau {
   id: string
   prenom: string
+  nom: string | null
   entreprise: string | null
   sujet: string | null
   evenement: string | null
@@ -183,6 +186,7 @@ export interface ContactReseau {
   photo_url: string | null
   rappel_fait: boolean
   converti: boolean
+  qualification: ContactQualification
   created_at: string
 }
 
