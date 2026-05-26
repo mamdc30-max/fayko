@@ -2,309 +2,409 @@
 
 import { useState, useEffect } from 'react'
 import { supabase } from '@/lib/supabase'
-import { formatDate, formatPrice } from '@/lib/utils'
-import { Plus, X, ChevronRight, Check } from 'lucide-react'
-import type { Prospect, ProspectStatut, CanalContact } from '@/lib/types'
+import { Plus, X, Check } from 'lucide-react'
+import type { Prospect, ProspectStatut, ProspectInteraction, InteractionType } from '@/lib/types'
 
-const STATUTS: ProspectStatut[] = [
-  'Rencontré', 'Contacté', 'Appel découverte', 'Proposition envoyée', 'Client', 'Perdu',
+const ETAPES: { key: ProspectStatut; label: string; next?: ProspectStatut; nextLabel?: string }[] = [
+  { key: 'source',        label: 'Source',       next: 'contacte',      nextLabel: '→ Marquer Contacté' },
+  { key: 'contacte',      label: 'Contacté',      next: 'en_discussion', nextLabel: '→ Appel découverte' },
+  { key: 'en_discussion', label: 'En discussion', next: 'proposition',   nextLabel: '→ Envoyer proposition' },
+  { key: 'proposition',   label: 'Proposition',   next: 'client',        nextLabel: '→ Marquer Client' },
+  { key: 'client',        label: 'Client' },
 ]
 
-const STATUT_COLORS: Record<ProspectStatut, string> = {
-  'Rencontré':          'bg-stone-100 text-stone-600',
-  'Contacté':           'bg-blue-50 text-blue-600',
-  'Appel découverte':   'bg-purple-50 text-purple-600',
-  'Proposition envoyée':'bg-amber-50 text-amber-700',
-  'Client':             'bg-green-50 text-green-700',
-  'Perdu':              'bg-red-50 text-red-500',
+const INTERACTION_ICONS: Record<InteractionType, string> = {
+  message: '💬', appel: '📞', rdv: '🤝', relance: '🔁', email: '✉️', autre: '📝',
 }
 
-const STATUT_NEXT: Partial<Record<ProspectStatut, ProspectStatut>> = {
-  'Rencontré':           'Contacté',
-  'Contacté':            'Appel découverte',
-  'Appel découverte':    'Proposition envoyée',
-  'Proposition envoyée': 'Client',
+const CANAL_COLORS: Record<string, string> = {
+  linkedin:             'bg-blue-50 text-blue-700',
+  'événement':          'bg-purple-50 text-purple-700',
+  réseau:               'bg-green-50 text-green-700',
+  'prospection directe':'bg-orange-50 text-orange-700',
+  autre:                'bg-stone-100 text-stone-600',
 }
 
-const CANAUX: { value: CanalContact; label: string }[] = [
-  { value: 'événement', label: 'Événement' },
-  { value: 'linkedin',  label: 'LinkedIn' },
-  { value: 'réseau',    label: 'Réseau' },
-  { value: 'autre',     label: 'Autre' },
-]
+const EMPTY_FORM = { prenom: '', nom: '', entreprise: '', secteur: '', canal_propose: 'linkedin', montant_estime: '', notes: '' }
+const EMPTY_IFORM = { type: 'rdv' as InteractionType, label: '', date: new Date().toISOString().split('T')[0], notes: '' }
 
-interface ProspectForm {
-  prenom: string
-  nom: string
-  entreprise: string
-  secteur: string
-  canal: CanalContact
-  offre_associee: string
-  montant_estime: string
-  notes: string
+function isStale(p: Prospect): boolean {
+  if (!p.last_action_at || p.statut === 'client' || p.statut === 'source') return false
+  return (Date.now() - new Date(p.last_action_at).getTime()) > 7 * 24 * 60 * 60 * 1000
 }
 
-const EMPTY_FORM: ProspectForm = {
-  prenom: '', nom: '', entreprise: '', secteur: '',
-  canal: 'réseau', offre_associee: '', montant_estime: '', notes: '',
+function fmtDate(d: string) {
+  return new Date(d).toLocaleDateString('fr-FR', { day: 'numeric', month: 'short' })
 }
 
-export default function ProspectsPage() {
-  const [prospects, setProspects] = useState<Prospect[]>([])
-  const [loading, setLoading] = useState(true)
-  const [filterStatut, setFilterStatut] = useState<ProspectStatut | 'Tous'>('Tous')
-  const [showForm, setShowForm] = useState(false)
-  const [editing, setEditing] = useState<Prospect | null>(null)
-  const [form, setForm] = useState<ProspectForm>(EMPTY_FORM)
+function Stars({ n, max = 3 }: { n: number; max?: number }) {
+  return <span>{'★'.repeat(n)}{'☆'.repeat(max - n)}</span>
+}
 
-  useEffect(() => {
-    load()
-  }, [])
+export default function PipelinePage() {
+  const [prospects, setProspects]       = useState<Prospect[]>([])
+  const [interactions, setInteractions] = useState<Record<string, ProspectInteraction[]>>({})
+  const [loading, setLoading]           = useState(true)
+  const [activeTab, setActiveTab]       = useState<ProspectStatut>('source')
+  const [expandedId, setExpandedId]     = useState<string | null>(null)
+  const [showAddProspect, setShowAddProspect]       = useState(false)
+  const [showAddInteraction, setShowAddInteraction] = useState<string | null>(null)
+  const [form,  setForm]  = useState(EMPTY_FORM)
+  const [iform, setIform] = useState(EMPTY_IFORM)
+
+  useEffect(() => { load() }, [])
 
   async function load() {
-    const { data } = await supabase.from('prospects').select('*').order('created_at', { ascending: false })
-    if (data) setProspects(data)
+    const { data: pData } = await supabase
+      .from('prospects')
+      .select('*')
+      .not('statut', 'eq', 'perdu')
+      .order('last_action_at', { ascending: true, nullsFirst: true })
+
+    if (pData) {
+      setProspects(pData)
+      const ids = pData.map(p => p.id)
+      if (ids.length) {
+        const { data: iData } = await supabase
+          .from('prospect_interactions')
+          .select('*')
+          .in('prospect_id', ids)
+          .order('date', { ascending: false })
+        if (iData) {
+          const grouped: Record<string, ProspectInteraction[]> = {}
+          iData.forEach(i => {
+            if (!grouped[i.prospect_id]) grouped[i.prospect_id] = []
+            grouped[i.prospect_id].push(i)
+          })
+          setInteractions(grouped)
+        }
+      }
+    }
     setLoading(false)
   }
 
-  function openNew() {
-    setEditing(null)
-    setForm(EMPTY_FORM)
-    setShowForm(true)
+  async function advance(p: Prospect, next: ProspectStatut) {
+    const today = new Date().toISOString().split('T')[0]
+    const { data } = await supabase
+      .from('prospects')
+      .update({ statut: next, last_action_at: today })
+      .eq('id', p.id).select().single()
+    if (data) setProspects(prev => prev.map(x => x.id === p.id ? data : x))
+    if (next === 'en_discussion') await addInteraction(p.id, 'rdv', 'Appel découverte', today)
+    if (next === 'contacte')      await addInteraction(p.id, 'message', 'Premier contact', today)
   }
 
-  function openEdit(p: Prospect) {
-    setEditing(p)
-    setForm({
-      prenom: p.prenom,
-      nom: p.nom,
-      entreprise: p.entreprise ?? '',
-      secteur: p.secteur ?? '',
-      canal: p.canal ?? 'réseau',
-      offre_associee: p.offre_associee ?? '',
-      montant_estime: p.montant_estime ? String(p.montant_estime) : '',
-      notes: p.notes ?? '',
-    })
-    setShowForm(true)
+  async function markPerdu(p: Prospect) {
+    await supabase.from('prospects').update({ statut: 'perdu' }).eq('id', p.id)
+    setProspects(prev => prev.filter(x => x.id !== p.id))
   }
 
-  async function save() {
-    if (!form.prenom.trim() || !form.nom.trim()) return
-    const payload = {
+  async function addInteraction(prospectId: string, type: InteractionType, label: string, date: string, notes?: string) {
+    const { data } = await supabase
+      .from('prospect_interactions')
+      .insert({ prospect_id: prospectId, type, label, date, notes: notes || null })
+      .select().single()
+    if (data) setInteractions(prev => ({ ...prev, [prospectId]: [data, ...(prev[prospectId] || [])] }))
+  }
+
+  async function saveInteraction() {
+    if (!showAddInteraction || !iform.label.trim()) return
+    await addInteraction(showAddInteraction, iform.type, iform.label.trim(), iform.date, iform.notes)
+    await supabase.from('prospects').update({ last_action_at: iform.date }).eq('id', showAddInteraction)
+    setProspects(prev => prev.map(p => p.id === showAddInteraction ? { ...p, last_action_at: iform.date } : p))
+    setShowAddInteraction(null)
+    setIform(EMPTY_IFORM)
+  }
+
+  async function saveProspect() {
+    if (!form.entreprise.trim() && !form.prenom.trim()) return
+    const today = new Date().toISOString().split('T')[0]
+    const { data } = await supabase.from('prospects').insert({
       prenom: form.prenom.trim(),
       nom: form.nom.trim(),
       entreprise: form.entreprise.trim() || null,
       secteur: form.secteur.trim() || null,
-      canal: form.canal,
-      offre_associee: form.offre_associee.trim() || null,
+      canal_propose: form.canal_propose,
       montant_estime: form.montant_estime ? parseFloat(form.montant_estime) : 0,
       notes: form.notes.trim() || null,
-      dernier_contact_at: new Date().toISOString().split('T')[0],
-    }
-    if (editing) {
-      const { data } = await supabase.from('prospects').update(payload).eq('id', editing.id).select().single()
-      if (data) setProspects(prev => prev.map(p => p.id === editing.id ? data : p))
-    } else {
-      const { data } = await supabase.from('prospects').insert(payload).select().single()
-      if (data) setProspects(prev => [data, ...prev])
-    }
-    setShowForm(false)
+      statut: 'source' as ProspectStatut,
+      last_action_at: today,
+    }).select().single()
+    if (data) { setProspects(prev => [data, ...prev]); setActiveTab('source') }
+    setShowAddProspect(false)
+    setForm(EMPTY_FORM)
   }
 
-  async function advanceStatut(p: Prospect) {
-    const next = STATUT_NEXT[p.statut]
-    if (!next) return
-    const { data } = await supabase
-      .from('prospects')
-      .update({ statut: next, dernier_contact_at: new Date().toISOString().split('T')[0] })
-      .eq('id', p.id)
-      .select()
-      .single()
-    if (data) setProspects(prev => prev.map(x => x.id === p.id ? data : x))
-  }
-
-  async function changeStatut(p: Prospect, statut: ProspectStatut) {
-    const { data } = await supabase.from('prospects').update({ statut }).eq('id', p.id).select().single()
-    if (data) setProspects(prev => prev.map(x => x.id === p.id ? data : x))
-  }
-
-  const counts = STATUTS.reduce((acc, s) => {
-    acc[s] = prospects.filter(p => p.statut === s).length
+  const counts = ETAPES.reduce((acc, e) => {
+    acc[e.key] = prospects.filter(p => p.statut === e.key).length
     return acc
   }, {} as Record<ProspectStatut, number>)
 
-  const filtered = filterStatut === 'Tous' ? prospects : prospects.filter(p => p.statut === filterStatut)
+  const filtered    = prospects.filter(p => p.statut === activeTab)
+  const activeEtape = ETAPES.find(e => e.key === activeTab)
 
   if (loading) return <div className="text-muted text-sm pt-8 text-center">Chargement…</div>
 
   return (
-    <div className="space-y-5">
-      <div className="flex items-start justify-between">
-        <div>
-          <h1 className="text-xl font-bold text-stone-800">Prospects</h1>
-          <p className="text-xs text-muted mt-0.5">{prospects.length} contact{prospects.length > 1 ? 's' : ''} dans le tunnel</p>
-        </div>
-        <button onClick={openNew}
-          className="flex items-center gap-1.5 bg-primary text-white text-sm font-medium px-3 py-2 rounded-xl hover:bg-primary-dark transition">
-          <Plus size={15} /> Ajouter
-        </button>
-      </div>
+    <div className="space-y-0 -mx-4 -mt-6">
 
-      {/* Filtre par statut */}
-      <div className="flex gap-2 overflow-x-auto pb-1 no-scrollbar">
-        <button
-          onClick={() => setFilterStatut('Tous')}
-          className={`shrink-0 px-3 py-1.5 rounded-full text-xs font-medium transition ${filterStatut === 'Tous' ? 'bg-primary text-white' : 'bg-surface border border-border text-muted'}`}>
-          Tous ({prospects.length})
-        </button>
-        {STATUTS.map(s => (
-          <button key={s}
-            onClick={() => setFilterStatut(s)}
-            className={`shrink-0 px-3 py-1.5 rounded-full text-xs font-medium transition ${filterStatut === s ? 'bg-primary text-white' : 'bg-surface border border-border text-muted'}`}>
-            {s} ({counts[s]})
+      {/* Header + tabs */}
+      <div className="px-4 pt-6 pb-3 bg-beige sticky top-0 z-10 border-b border-border/40">
+        <div className="flex items-center justify-between mb-4">
+          <div>
+            <h1 className="text-xl font-bold text-stone-800">Pipeline</h1>
+            <p className="text-xs text-muted mt-0.5">{prospects.length} prospect{prospects.length > 1 ? 's' : ''} actifs</p>
+          </div>
+          <button onClick={() => setShowAddProspect(true)}
+            className="flex items-center gap-1.5 bg-primary text-white text-sm font-semibold px-3 py-2 rounded-xl hover:bg-primary-dark transition">
+            <Plus size={15} /> Prospect
           </button>
-        ))}
+        </div>
+        <div className="flex gap-2 overflow-x-auto pb-1 no-scrollbar">
+          {ETAPES.map(e => (
+            <button key={e.key} onClick={() => setActiveTab(e.key)}
+              className={`shrink-0 flex items-center gap-1.5 px-3 py-1.5 rounded-full text-xs font-semibold transition ${
+                activeTab === e.key
+                  ? 'bg-stone-800 text-white'
+                  : 'bg-white text-muted border border-border hover:border-stone-300'
+              }`}>
+              {e.label}
+              <span className={`rounded-full px-1.5 text-[10px] font-bold ${
+                activeTab === e.key ? 'bg-white/20 text-white' : 'bg-stone-100 text-stone-600'
+              }`}>{counts[e.key]}</span>
+            </button>
+          ))}
+        </div>
       </div>
 
-      {/* Liste */}
-      {filtered.length === 0 ? (
-        <div className="text-center py-10 text-muted">
-          <p className="text-3xl mb-3">🤝</p>
-          <p className="text-sm font-medium text-stone-700">Aucun prospect ici</p>
-          <p className="text-xs mt-1">Clique sur Ajouter pour en créer un</p>
-        </div>
-      ) : (
-        <div className="space-y-2">
-          {filtered.map(p => (
-            <div key={p.id}
-              className="bg-surface rounded-2xl border border-border p-4 space-y-3">
-              <div className="flex items-start justify-between gap-2">
-                <div className="flex-1 min-w-0">
-                  <p className="font-semibold text-stone-800 text-sm">{p.prenom} {p.nom}</p>
-                  {p.entreprise && <p className="text-xs text-muted mt-0.5">{p.entreprise}{p.secteur ? ` · ${p.secteur}` : ''}</p>}
-                  {p.offre_associee && (
-                    <p className="text-xs text-primary mt-1 font-medium">
-                      {p.offre_associee}{p.montant_estime > 0 ? ` · ${formatPrice(p.montant_estime)}` : ''}
-                    </p>
+      {/* List */}
+      <div className="px-4 pt-3 pb-24 space-y-3">
+        {filtered.length === 0 ? (
+          <div className="text-center py-14">
+            <p className="text-4xl mb-3">🎯</p>
+            <p className="text-sm font-semibold text-stone-700">Aucun prospect ici</p>
+            <p className="text-xs text-muted mt-1.5">
+              {activeTab === 'source'
+                ? "Les prospects qualifiés par l'agent Cowork apparaîtront ici"
+                : 'Fais avancer tes prospects depuis l\'onglet précédent'}
+            </p>
+          </div>
+        ) : (
+          filtered.map(p => {
+            const pInter    = interactions[p.id] || []
+            const expanded  = expandedId === p.id
+            const stale     = isStale(p)
+
+            return (
+              <div key={p.id} className={`bg-white rounded-2xl border-l-4 shadow-sm overflow-hidden ${
+                stale              ? 'border-l-amber-400' :
+                activeTab === 'client' ? 'border-l-green-500' : 'border-l-primary'
+              }`}>
+                <div className="p-4">
+
+                  {/* Top */}
+                  <div className="flex items-start justify-between gap-2 mb-2">
+                    <div className="flex-1 min-w-0">
+                      <p className="font-bold text-stone-800 text-[15px] leading-tight">
+                        {p.prenom || p.nom ? `${p.prenom} ${p.nom}`.trim() : p.entreprise}
+                      </p>
+                      {(p.prenom || p.nom) && p.entreprise && (
+                        <p className="text-xs text-muted mt-0.5 truncate">
+                          {p.entreprise}{p.secteur ? ` · ${p.secteur}` : ''}
+                        </p>
+                      )}
+                      {p.montant_estime > 0 && (
+                        <p className="text-xs font-bold text-primary mt-1">
+                          {p.montant_estime.toLocaleString('fr-FR')} € HT
+                        </p>
+                      )}
+                    </div>
+                    <div className="flex flex-col items-end gap-1 shrink-0">
+                      {stale && (
+                        <span className="text-[10px] bg-amber-50 text-amber-700 px-2 py-0.5 rounded-full font-bold">⚠️ J+7</span>
+                      )}
+                      {p.canal_propose && (
+                        <span className={`text-[10px] px-2 py-0.5 rounded-full font-semibold ${CANAL_COLORS[p.canal_propose] ?? CANAL_COLORS['autre']}`}>
+                          {p.canal_propose}
+                        </span>
+                      )}
+                    </div>
+                  </div>
+
+                  {/* Scores (source only) */}
+                  {activeTab === 'source' && (p.score_site || p.score_linkedin) && (
+                    <div className="flex gap-4 mb-2">
+                      {p.score_site     && <span className="text-[11px] text-muted">Site <strong className="text-amber-500"><Stars n={p.score_site} /></strong></span>}
+                      {p.score_linkedin && <span className="text-[11px] text-muted">LinkedIn <strong className="text-amber-500"><Stars n={p.score_linkedin} /></strong></span>}
+                    </div>
                   )}
+
+                  {/* Interactions */}
+                  {pInter.length > 0 && (
+                    <div className="mb-3 space-y-1.5 border-t border-stone-50 pt-2 mt-2">
+                      {pInter.slice(0, expanded ? undefined : 2).map(i => (
+                        <div key={i.id} className="flex items-center gap-2">
+                          <span className="text-xs">{INTERACTION_ICONS[i.type]}</span>
+                          <span className="text-xs font-medium text-stone-700 flex-1 truncate">{i.label || i.type}</span>
+                          <span className="text-[10px] text-muted shrink-0">{fmtDate(i.date)}</span>
+                        </div>
+                      ))}
+                      {pInter.length > 2 && !expanded && (
+                        <button onClick={() => setExpandedId(p.id)}
+                          className="text-[10px] text-primary font-semibold">
+                          +{pInter.length - 2} de plus
+                        </button>
+                      )}
+                    </div>
+                  )}
+
+                  {/* Message préparé (source + expanded) */}
+                  {expanded && activeTab === 'source' && p.message_type && (
+                    <div className="mb-3 bg-stone-50 rounded-xl p-3 border border-stone-100">
+                      <p className="text-[10px] text-muted font-bold uppercase tracking-wider mb-1.5">Message préparé</p>
+                      <p className="text-xs text-stone-700 leading-relaxed whitespace-pre-line">{p.message_type}</p>
+                    </div>
+                  )}
+
+                  {/* Notes (expanded) */}
+                  {expanded && p.notes && (
+                    <p className="mb-3 text-xs text-muted bg-beige-50 rounded-xl px-3 py-2 italic leading-relaxed">{p.notes}</p>
+                  )}
+
+                  {/* Actions */}
+                  <div className="flex gap-2 flex-wrap pt-1">
+                    {activeEtape?.next && (
+                      <button onClick={() => advance(p, activeEtape.next!)}
+                        className="flex-1 bg-primary text-white text-xs font-bold py-2.5 rounded-xl hover:bg-primary-dark transition min-w-[130px]">
+                        {activeEtape.nextLabel}
+                      </button>
+                    )}
+                    <button
+                      onClick={() => { setShowAddInteraction(p.id); setIform(EMPTY_IFORM) }}
+                      className="px-3 py-2.5 text-xs text-primary border border-primary/30 bg-primary-light rounded-xl font-bold transition">
+                      + Interaction
+                    </button>
+                    <button onClick={() => setExpandedId(expanded ? null : p.id)}
+                      className="px-3 py-2.5 text-xs text-muted border border-border rounded-xl hover:bg-beige-50 transition">
+                      {expanded ? '↑' : 'Voir'}
+                    </button>
+                    {activeTab !== 'client' && (
+                      <button onClick={() => markPerdu(p)}
+                        className="px-3 py-2.5 text-xs text-red-400 border border-red-100 rounded-xl hover:bg-red-50 transition">
+                        Perdu
+                      </button>
+                    )}
+                  </div>
                 </div>
-                <span className={`text-xs px-2 py-1 rounded-full font-medium shrink-0 ${STATUT_COLORS[p.statut]}`}>
-                  {p.statut}
-                </span>
               </div>
+            )
+          })
+        )}
+      </div>
 
-              {p.notes && (
-                <p className="text-xs text-muted bg-beige-50 rounded-lg px-3 py-2 italic leading-relaxed">
-                  {p.notes}
-                </p>
-              )}
-
-              <div className="flex gap-2">
-                {STATUT_NEXT[p.statut] && (
-                  <button onClick={() => advanceStatut(p)}
-                    className="flex-1 flex items-center justify-center gap-1.5 bg-primary text-white text-xs font-medium py-2 rounded-xl hover:bg-primary-dark transition">
-                    <ChevronRight size={13} /> {STATUT_NEXT[p.statut]}
-                  </button>
-                )}
-                {p.statut !== 'Perdu' && p.statut !== 'Client' && (
-                  <button onClick={() => changeStatut(p, 'Perdu')}
-                    className="px-3 py-2 text-xs text-red-400 border border-red-100 rounded-xl hover:bg-red-50 transition">
-                    Perdu
-                  </button>
-                )}
-                <button onClick={() => openEdit(p)}
-                  className="px-3 py-2 text-xs text-muted border border-border rounded-xl hover:bg-beige-50 transition">
-                  Modifier
-                </button>
-              </div>
-
-              {p.dernier_contact_at && (
-                <p className="text-xs text-muted">Dernier contact : {formatDate(p.dernier_contact_at)}</p>
-              )}
+      {/* Modal — Nouvelle interaction */}
+      {showAddInteraction && (
+        <div className="fixed inset-0 bg-black/40 z-50 flex items-end justify-center">
+          <div className="bg-white w-full max-w-lg rounded-t-3xl p-6 space-y-4">
+            <div className="flex items-center justify-between">
+              <h2 className="font-bold text-stone-800">Ajouter une interaction</h2>
+              <button onClick={() => setShowAddInteraction(null)} className="text-muted"><X size={20} /></button>
             </div>
-          ))}
+            <div className="grid grid-cols-3 gap-2">
+              {(['rdv', 'appel', 'message', 'relance', 'email', 'autre'] as InteractionType[]).map(t => (
+                <button key={t} onClick={() => setIform(f => ({ ...f, type: t }))}
+                  className={`py-2.5 rounded-xl text-xs font-semibold border transition ${
+                    iform.type === t ? 'bg-primary text-white border-primary' : 'border-border text-stone-600 hover:border-stone-300'
+                  }`}>
+                  {INTERACTION_ICONS[t]} {t}
+                </button>
+              ))}
+            </div>
+            <div>
+              <label className="text-xs text-muted mb-1 block font-medium">Description *</label>
+              <input value={iform.label} onChange={e => setIform(f => ({ ...f, label: e.target.value }))}
+                placeholder="ex: RDV 1 — Appel découverte"
+                className="w-full border border-border rounded-xl px-3 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-primary/30" />
+            </div>
+            <div>
+              <label className="text-xs text-muted mb-1 block font-medium">Date</label>
+              <input type="date" value={iform.date} onChange={e => setIform(f => ({ ...f, date: e.target.value }))}
+                className="w-full border border-border rounded-xl px-3 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-primary/30" />
+            </div>
+            <div>
+              <label className="text-xs text-muted mb-1 block font-medium">Notes (optionnel)</label>
+              <textarea value={iform.notes} onChange={e => setIform(f => ({ ...f, notes: e.target.value }))}
+                rows={2} placeholder="Points clés, suite à donner…"
+                className="w-full border border-border rounded-xl px-3 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-primary/30 resize-none" />
+            </div>
+            <button onClick={saveInteraction} disabled={!iform.label.trim()}
+              className="w-full bg-primary text-white font-bold py-3 rounded-xl disabled:opacity-40 flex items-center justify-center gap-2">
+              <Check size={16} /> Enregistrer
+            </button>
+          </div>
         </div>
       )}
 
-      {/* Formulaire (slide-in) */}
-      {showForm && (
-        <div className="fixed inset-0 bg-black/40 z-50 flex items-end md:items-center justify-center">
-          <div className="bg-surface w-full max-w-lg rounded-t-3xl md:rounded-2xl p-6 space-y-4 max-h-[90vh] overflow-y-auto">
+      {/* Modal — Nouveau prospect */}
+      {showAddProspect && (
+        <div className="fixed inset-0 bg-black/40 z-50 flex items-end justify-center">
+          <div className="bg-white w-full max-w-lg rounded-t-3xl p-6 space-y-4 max-h-[88vh] overflow-y-auto">
             <div className="flex items-center justify-between">
-              <h2 className="font-bold text-stone-800">{editing ? 'Modifier le prospect' : 'Nouveau prospect'}</h2>
-              <button onClick={() => setShowForm(false)} className="p-1 text-muted hover:text-stone-800">
-                <X size={20} />
-              </button>
+              <h2 className="font-bold text-stone-800">Nouveau prospect</h2>
+              <button onClick={() => setShowAddProspect(false)} className="text-muted"><X size={20} /></button>
             </div>
-
             <div className="grid grid-cols-2 gap-3">
               <div>
-                <label className="text-xs text-muted mb-1 block">Prénom *</label>
+                <label className="text-xs text-muted mb-1 block font-medium">Prénom</label>
                 <input value={form.prenom} onChange={e => setForm(f => ({ ...f, prenom: e.target.value }))}
-                  className="w-full border border-border rounded-xl px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-primary/30" />
+                  className="w-full border border-border rounded-xl px-3 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-primary/30" />
               </div>
               <div>
-                <label className="text-xs text-muted mb-1 block">Nom *</label>
+                <label className="text-xs text-muted mb-1 block font-medium">Nom</label>
                 <input value={form.nom} onChange={e => setForm(f => ({ ...f, nom: e.target.value }))}
-                  className="w-full border border-border rounded-xl px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-primary/30" />
+                  className="w-full border border-border rounded-xl px-3 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-primary/30" />
               </div>
             </div>
-
-            <div className="grid grid-cols-2 gap-3">
-              <div>
-                <label className="text-xs text-muted mb-1 block">Entreprise</label>
-                <input value={form.entreprise} onChange={e => setForm(f => ({ ...f, entreprise: e.target.value }))}
-                  className="w-full border border-border rounded-xl px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-primary/30" />
-              </div>
-              <div>
-                <label className="text-xs text-muted mb-1 block">Secteur</label>
-                <input value={form.secteur} onChange={e => setForm(f => ({ ...f, secteur: e.target.value }))}
-                  placeholder="ex: Mode, E-commerce…"
-                  className="w-full border border-border rounded-xl px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-primary/30" />
-              </div>
-            </div>
-
             <div>
-              <label className="text-xs text-muted mb-1 block">Canal de rencontre</label>
+              <label className="text-xs text-muted mb-1 block font-medium">Entreprise *</label>
+              <input value={form.entreprise} onChange={e => setForm(f => ({ ...f, entreprise: e.target.value }))}
+                className="w-full border border-border rounded-xl px-3 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-primary/30" />
+            </div>
+            <div>
+              <label className="text-xs text-muted mb-1 block font-medium">Secteur</label>
+              <input value={form.secteur} onChange={e => setForm(f => ({ ...f, secteur: e.target.value }))}
+                placeholder="ex: Communication B2B"
+                className="w-full border border-border rounded-xl px-3 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-primary/30" />
+            </div>
+            <div>
+              <label className="text-xs text-muted mb-1 block font-medium">Canal</label>
               <div className="flex gap-2 flex-wrap">
-                {CANAUX.map(c => (
-                  <button key={c.value}
-                    onClick={() => setForm(f => ({ ...f, canal: c.value }))}
-                    className={`px-3 py-1.5 rounded-full text-xs font-medium transition ${form.canal === c.value ? 'bg-primary text-white' : 'bg-beige-50 border border-border text-muted hover:border-primary/40'}`}>
-                    {c.label}
+                {['linkedin', 'événement', 'réseau', 'prospection directe', 'autre'].map(c => (
+                  <button key={c} onClick={() => setForm(f => ({ ...f, canal_propose: c }))}
+                    className={`px-3 py-1.5 rounded-full text-xs font-semibold border transition ${
+                      form.canal_propose === c ? 'bg-primary text-white border-primary' : 'border-border text-muted hover:border-stone-300'
+                    }`}>
+                    {c}
                   </button>
                 ))}
               </div>
             </div>
-
-            <div className="grid grid-cols-2 gap-3">
-              <div>
-                <label className="text-xs text-muted mb-1 block">Offre associée</label>
-                <input value={form.offre_associee} onChange={e => setForm(f => ({ ...f, offre_associee: e.target.value }))}
-                  placeholder="ex: Mission structurante"
-                  className="w-full border border-border rounded-xl px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-primary/30" />
-              </div>
-              <div>
-                <label className="text-xs text-muted mb-1 block">Montant estimé (€)</label>
-                <input type="number" value={form.montant_estime} onChange={e => setForm(f => ({ ...f, montant_estime: e.target.value }))}
-                  placeholder="0"
-                  className="w-full border border-border rounded-xl px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-primary/30" />
-              </div>
-            </div>
-
             <div>
-              <label className="text-xs text-muted mb-1 block">Notes</label>
+              <label className="text-xs text-muted mb-1 block font-medium">Montant estimé (€)</label>
+              <input type="number" value={form.montant_estime} onChange={e => setForm(f => ({ ...f, montant_estime: e.target.value }))}
+                placeholder="0"
+                className="w-full border border-border rounded-xl px-3 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-primary/30" />
+            </div>
+            <div>
+              <label className="text-xs text-muted mb-1 block font-medium">Notes</label>
               <textarea value={form.notes} onChange={e => setForm(f => ({ ...f, notes: e.target.value }))}
-                rows={3} placeholder="Contexte, intérêts, points de contact…"
-                className="w-full border border-border rounded-xl px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-primary/30 resize-none" />
+                rows={2} placeholder="Contexte, intérêts…"
+                className="w-full border border-border rounded-xl px-3 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-primary/30 resize-none" />
             </div>
-
-            <div className="flex gap-3 pt-1">
-              <button onClick={save} disabled={!form.prenom.trim() || !form.nom.trim()}
-                className="flex-1 bg-primary text-white font-semibold py-3 rounded-xl hover:bg-primary-dark transition disabled:opacity-40 flex items-center justify-center gap-2">
-                <Check size={16} /> {editing ? 'Enregistrer' : 'Ajouter le prospect'}
-              </button>
-            </div>
+            <button onClick={saveProspect} disabled={!form.entreprise.trim() && !form.prenom.trim()}
+              className="w-full bg-primary text-white font-bold py-3 rounded-xl disabled:opacity-40">
+              Ajouter dans Source
+            </button>
           </div>
         </div>
       )}

@@ -99,17 +99,17 @@ export interface Tache {
   created_at: string
 }
 
-// ---- V2 Admin ----
+// ---- V3 Pipeline ----
 
 export type ProspectStatut =
-  | 'Rencontré'
-  | 'Contacté'
-  | 'Appel découverte'
-  | 'Proposition envoyée'
-  | 'Client'
-  | 'Perdu'
+  | 'source'
+  | 'contacte'
+  | 'en_discussion'
+  | 'proposition'
+  | 'client'
+  | 'perdu'
 
-export type CanalContact = 'événement' | 'linkedin' | 'réseau' | 'autre'
+export type InteractionType = 'message' | 'appel' | 'rdv' | 'relance' | 'email' | 'autre'
 export type TypeEvenement = 'networking' | 'conférence' | 'atelier' | 'autre'
 
 export interface Prospect {
@@ -118,14 +118,57 @@ export interface Prospect {
   nom: string
   entreprise: string | null
   secteur: string | null
-  canal: CanalContact | null
+  ville: string | null
+  linkedin_url: string | null
+  effectif: number | null
+  ca_estime: string | null
+  score_site: number | null
+  score_linkedin: number | null
+  canal_propose: string | null
+  message_type: string | null
+  source_detail: string | null
   offre_associee: string | null
   montant_estime: number
-  dernier_contact_at: string | null
   statut: ProspectStatut
   notes: string | null
+  last_action_at: string | null
   created_at: string
-  updated_at: string
+}
+
+export interface ProspectInteraction {
+  id: string
+  prospect_id: string
+  type: InteractionType
+  label: string | null
+  date: string
+  notes: string | null
+  created_at: string
+}
+
+// ---- V3 Projets ----
+
+export type ProjetType   = 'client' | 'interne' | 'associatif'
+export type ProjetStatut = 'actif' | 'en_pause' | 'termine' | 'archive'
+
+export interface Projet {
+  id: string
+  nom: string
+  type: ProjetType
+  statut: ProjetStatut
+  client_nom: string | null
+  description: string | null
+  date_debut: string | null
+  date_fin: string | null
+  created_at: string
+}
+
+export interface Etape {
+  id: string
+  projet_id: string
+  nom: string
+  ordre: number
+  statut: 'en_cours' | 'termine'
+  created_at: string
 }
 
 export interface ContactReseau {

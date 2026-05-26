@@ -36,7 +36,7 @@ export async function POST(req: NextRequest) {
   const today   = new Date().toISOString().split('T')[0]
 
   const [{ data: prospects }, { data: contacts }] = await Promise.all([
-    supabase.from('prospects').select('*').eq('user_id', adminId).not('statut', 'in', '("Client","Perdu")'),
+    supabase.from('prospects').select('*').eq('user_id', adminId).not('statut', 'in', '("client","perdu")'),
     supabase.from('contacts_reseau').select('*').eq('user_id', adminId).eq('rappel_fait', false).eq('converti', false),
   ])
 
@@ -46,34 +46,34 @@ export async function POST(req: NextRequest) {
 
   for (const p of (prospects ?? []) as Prospect[]) {
     const name = [p.prenom, p.nom].filter(Boolean).join(' ') || 'Prospect'
-    const staleDays = daysSince(p.updated_at)
+    const staleDays = daysSince(p.last_action_at)
 
-    if (p.statut === 'Proposition envoyée' && staleDays >= 5) {
+    if (p.statut === 'proposition' && staleDays >= 5) {
       items.push({
         categorie: 'crm', priorite: 1,
         action: `Relancer ${name}`,
         contexte: `Proposition sans réponse depuis ${staleDays}j`,
         lien_type: 'prospect', lien_id: p.id,
       })
-    } else if (p.statut === 'Appel découverte' && staleDays >= 3) {
+    } else if (p.statut === 'en_discussion' && staleDays >= 3) {
       items.push({
         categorie: 'crm', priorite: 2,
         action: `Appel avec ${name}`,
-        contexte: `Appel découverte planifié depuis ${staleDays}j`,
+        contexte: `En discussion depuis ${staleDays}j — planifier le prochain RDV`,
         lien_type: 'prospect', lien_id: p.id,
       })
-    } else if (p.statut === 'Contacté' && staleDays >= 7) {
+    } else if (p.statut === 'contacte' && staleDays >= 7) {
       items.push({
         categorie: 'crm', priorite: 2,
         action: `Qualifier ${name}`,
         contexte: `Contacté il y a ${staleDays}j — à faire avancer ou archiver`,
         lien_type: 'prospect', lien_id: p.id,
       })
-    } else if (p.statut === 'Rencontré' && staleDays >= 3) {
+    } else if (p.statut === 'source' && staleDays >= 3) {
       items.push({
         categorie: 'crm', priorite: 2,
-        action: `Premier contact : ${name}`,
-        contexte: `Rencontré il y a ${staleDays}j — pas encore contacté`,
+        action: `Contacter ${name}`,
+        contexte: `Dans Source depuis ${staleDays}j — message prêt à envoyer`,
         lien_type: 'prospect', lien_id: p.id,
       })
     }
@@ -99,7 +99,7 @@ export async function POST(req: NextRequest) {
   if (process.env.ANTHROPIC_API_KEY && prospects && prospects.length > 0) {
     try {
       const summary = (prospects as Prospect[]).slice(0, 8).map(p =>
-        `${p.prenom} ${p.nom ?? ''} (${p.statut}, ${p.offre_associee ?? 'offre ?'}, ${daysSince(p.updated_at)}j)`
+        `${p.prenom} ${p.nom ?? ''} (${p.statut}, ${p.offre_associee ?? 'offre ?'}, ${daysSince(p.last_action_at)}j)`
       ).join('; ')
 
       const res = await fetch('https://api.anthropic.com/v1/messages', {
