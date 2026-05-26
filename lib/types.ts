@@ -167,3 +167,20 @@ export interface ClientDossier extends Client {
   statut_global: string
   devis: Devis[]
 }
+
+// ---- Veille hebdo ----
+
+export type VeilleCategorie = 'communication' | 'diaspora' | 'linkedin' | 'outils'
+export type VeilleType = 'article' | 'evenement' | 'outil' | 'tendance' | 'podcast'
+
+export interface VeilleItem {
+  id: string
+  user_id?: string
+  titre: string
+  source_url: string | null
+  resume: string | null
+  categorie: VeilleCategorie
+  type: VeilleType
+  date_veille: string
+  created_at: string
+}
