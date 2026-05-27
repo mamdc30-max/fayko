@@ -26,7 +26,7 @@ CREATE TABLE IF NOT EXISTS projets (
   id            UUID PRIMARY KEY DEFAULT gen_random_uuid(),
   user_id       UUID REFERENCES auth.users NOT NULL,
   nom           TEXT NOT NULL,
-  type          TEXT NOT NULL CHECK (type IN ('client', 'interne', 'associatif')),
+  type          TEXT NOT NULL CHECK (type IN ('client', 'interne', 'personnel')),
   statut        TEXT NOT NULL DEFAULT 'actif'
                   CHECK (statut IN ('actif', 'en_pause', 'termine', 'archive')),
   client_nom    TEXT,                    -- nom du client si type = 'client'

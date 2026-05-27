@@ -7,9 +7,9 @@ import Link from 'next/link'
 import type { Projet } from '@/lib/types'
 
 const TYPE_CONFIG = {
-  client:     { label: 'Client',     color: 'bg-orange-50 text-orange-600 border-orange-200', dot: 'bg-orange-400', icon: Briefcase },
-  interne:    { label: 'Interne',    color: 'bg-blue-50 text-blue-600 border-blue-200',       dot: 'bg-blue-400',   icon: Cpu },
-  associatif: { label: 'Associatif', color: 'bg-violet-50 text-violet-600 border-violet-200', dot: 'bg-violet-400', icon: Heart },
+  client:    { label: 'Client',    color: 'bg-orange-50 text-orange-600 border-orange-200', dot: 'bg-orange-400', icon: Briefcase },
+  interne:   { label: 'Interne',   color: 'bg-blue-50 text-blue-600 border-blue-200',       dot: 'bg-blue-400',   icon: Cpu },
+  personnel: { label: 'Personnel', color: 'bg-violet-50 text-violet-600 border-violet-200', dot: 'bg-violet-400', icon: Heart },
 }
 
 const STATUT_CONFIG = {
@@ -19,7 +19,7 @@ const STATUT_CONFIG = {
   archive:  { label: 'Archivé',  badge: 'bg-stone-50 text-stone-400' },
 }
 
-const TABS = ['Tous', 'Client', 'Interne', 'Associatif'] as const
+const TABS = ['Tous', 'Client', 'Interne', 'Personnel'] as const
 type Tab = typeof TABS[number]
 
 interface ProjetWithProgress extends Projet {
@@ -117,7 +117,7 @@ export default function ProjetsPage() {
             className="w-full text-sm border border-border rounded-xl px-3 py-2.5 focus:outline-none focus:ring-2 focus:ring-primary/30 bg-beige-50"
           />
           <div className="flex gap-1.5">
-            {(['client', 'interne', 'associatif'] as const).map(t => (
+            {(['client', 'interne', 'personnel'] as const).map(t => (
               <button
                 key={t}
                 onClick={() => setForm(f => ({ ...f, type: t }))}

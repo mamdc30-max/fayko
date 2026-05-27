@@ -149,7 +149,7 @@ export interface ProspectInteraction {
 
 // ---- V3 Projets ----
 
-export type ProjetType   = 'client' | 'interne' | 'associatif'
+export type ProjetType   = 'client' | 'interne' | 'personnel'
 export type ProjetStatut = 'actif' | 'en_pause' | 'termine' | 'archive'
 
 export interface Projet {

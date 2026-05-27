@@ -7,12 +7,12 @@ import { ArrowLeft, Plus, Check, Trash2, ChevronDown, ChevronUp } from 'lucide-r
 import type { Projet, Etape, Tache } from '@/lib/types'
 
 const TYPE_LABEL: Record<string, string> = {
-  client: 'Client', interne: 'Interne', associatif: 'Associatif',
+  client: 'Client', interne: 'Interne', personnel: 'Personnel',
 }
 const TYPE_COLOR: Record<string, string> = {
-  client: 'bg-orange-50 text-orange-600 border-orange-200',
-  interne: 'bg-blue-50 text-blue-600 border-blue-200',
-  associatif: 'bg-violet-50 text-violet-600 border-violet-200',
+  client:    'bg-orange-50 text-orange-600 border-orange-200',
+  interne:   'bg-blue-50 text-blue-600 border-blue-200',
+  personnel: 'bg-violet-50 text-violet-600 border-violet-200',
 }
 const STATUT_OPTIONS: Projet['statut'][] = ['actif', 'en_pause', 'termine', 'archive']
 const STATUT_LABEL: Record<string, string> = {
