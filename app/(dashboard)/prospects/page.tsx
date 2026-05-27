@@ -51,6 +51,8 @@ export default function PipelinePage() {
   const [showAddInteraction, setShowAddInteraction] = useState<string | null>(null)
   const [form,  setForm]  = useState(EMPTY_FORM)
   const [iform, setIform] = useState(EMPTY_IFORM)
+  const [nextSteps, setNextSteps]     = useState<Record<string, string>>({})
+  const [loadingStep, setLoadingStep] = useState<Record<string, boolean>>({})
 
   useEffect(() => { load() }, [])
 
@@ -133,6 +135,20 @@ export default function PipelinePage() {
     if (data) { setProspects(prev => [data, ...prev]); setActiveTab('source') }
     setShowAddProspect(false)
     setForm(EMPTY_FORM)
+  }
+
+  async function fetchNextStep(p: Prospect) {
+    setLoadingStep(prev => ({ ...prev, [p.id]: true }))
+    try {
+      const res = await fetch('/api/next-step', {
+        method: 'POST',
+        headers: { 'content-type': 'application/json' },
+        body: JSON.stringify({ prospect: p, interactions: interactions[p.id] || [] }),
+      })
+      const { suggestion } = await res.json() as { suggestion: string | null }
+      if (suggestion) setNextSteps(prev => ({ ...prev, [p.id]: suggestion }))
+    } catch {}
+    setLoadingStep(prev => ({ ...prev, [p.id]: false }))
   }
 
   const counts = ETAPES.reduce((acc, e) => {
@@ -269,6 +285,33 @@ export default function PipelinePage() {
                   {/* Notes (expanded) */}
                   {expanded && p.notes && (
                     <p className="mb-3 text-xs text-muted bg-beige-50 rounded-xl px-3 py-2 italic leading-relaxed">{p.notes}</p>
+                  )}
+
+                  {/* Next step IA */}
+                  {expanded && (
+                    <div className="mb-3">
+                      {nextSteps[p.id] ? (
+                        <div className="flex items-start gap-2 bg-violet-50 border border-violet-200 rounded-xl px-3 py-2.5">
+                          <span className="text-sm shrink-0">&#x1F4A1;</span>
+                          <div className="flex-1 min-w-0">
+                            <p className="text-[10px] text-violet-500 font-bold uppercase tracking-wider mb-0.5">Prochaine etape</p>
+                            <p className="text-xs text-violet-900 font-medium leading-snug">{nextSteps[p.id]}</p>
+                          </div>
+                          <button
+                            onClick={() => setNextSteps(prev => { const n = { ...prev }; delete n[p.id]; return n })}
+                            className="text-violet-400 hover:text-violet-600 text-xs shrink-0 mt-0.5"
+                          >&#x2715;</button>
+                        </div>
+                      ) : (
+                        <button
+                          onClick={() => fetchNextStep(p)}
+                          disabled={loadingStep[p.id]}
+                          className="flex items-center gap-1.5 text-xs font-semibold text-violet-600 border border-violet-200 bg-violet-50 px-3 py-2 rounded-xl hover:bg-violet-100 transition disabled:opacity-50"
+                        >
+                          {loadingStep[p.id] ? '⏳ Analyse...' : '💡 Prochaine etape'}
+                        </button>
+                      )}
+                    </div>
                   )}
 
                   {/* Actions */}
