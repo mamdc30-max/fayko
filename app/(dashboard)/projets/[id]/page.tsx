@@ -5,6 +5,7 @@ import { useParams, useRouter } from 'next/navigation'
 import { supabase } from '@/lib/supabase'
 import { ArrowLeft, Plus, Check, Trash2, ChevronDown, ChevronUp } from 'lucide-react'
 import type { Projet, Etape, Tache } from '@/lib/types'
+import TacheModal, { PrioDot } from '@/components/TacheModal'
 
 const TYPE_LABEL: Record<string, string> = {
   client: 'Client', interne: 'Interne', personnel: 'Personnel',
@@ -33,6 +34,7 @@ export default function ProjetDetailPage() {
   const [orphans, setOrphans] = useState<Tache[]>([])   // tâches sans étape
   const [loading, setLoading] = useState(true)
 
+  const [selectedTache, setSelectedTache]     = useState<Tache | null>(null)
   const [newEtapeName, setNewEtapeName]       = useState('')
   const [addingEtape, setAddingEtape]         = useState(false)
   const [newTacheText, setNewTacheText]        = useState<Record<string, string>>({})   // key = etape_id | 'orphan'
@@ -243,6 +245,7 @@ export default function ProjetDetailPage() {
             onAddTache={() => createTache(etape.id)}
             onToggleTache={(tid, faite) => toggleTache(tid, faite, etape.id)}
             onDeleteTache={tid => deleteTache(tid, etape.id)}
+            onOpenTache={t => setSelectedTache(t)}
           />
         ))}
       </div>
@@ -296,6 +299,7 @@ export default function ProjetDetailPage() {
                 tache={t}
                 onToggle={faite => toggleTache(t.id, faite, null)}
                 onDelete={() => deleteTache(t.id, null)}
+                onOpen={() => setSelectedTache(t)}
               />
             ))}
             <AddTacheInline
@@ -306,6 +310,27 @@ export default function ProjetDetailPage() {
           </div>
         </div>
       )}
+
+      {selectedTache && (
+        <TacheModal
+          tache={selectedTache}
+          onClose={() => setSelectedTache(null)}
+          onSave={updated => {
+            setEtapes(prev => prev.map(e => ({
+              ...e,
+              taches: e.taches.map(t => t.id === updated.id ? updated : t),
+            })))
+            setOrphans(prev => prev.map(t => t.id === updated.id ? updated : t))
+          }}
+          onDelete={id => {
+            setEtapes(prev => prev.map(e => ({
+              ...e,
+              taches: e.taches.filter(t => t.id !== id),
+            })))
+            setOrphans(prev => prev.filter(t => t.id !== id))
+          }}
+        />
+      )}
     </div>
   )
 }
@@ -313,7 +338,7 @@ export default function ProjetDetailPage() {
 /* ── Sub-components ──────────────────────────────────────────────── */
 
 function EtapeSection({
-  etape, newText, onNewTextChange, onToggleOpen, onToggleDone, onDelete, onAddTache, onToggleTache, onDeleteTache,
+  etape, newText, onNewTextChange, onToggleOpen, onToggleDone, onDelete, onAddTache, onToggleTache, onDeleteTache, onOpenTache,
 }: {
   etape: EtapeWithTaches
   newText: string
@@ -324,6 +349,7 @@ function EtapeSection({
   onAddTache: () => void
   onToggleTache: (id: string, faite: boolean) => void
   onDeleteTache: (id: string) => void
+  onOpenTache: (t: Tache) => void
 }) {
   const done     = etape.statut === 'termine'
   const doneCount = etape.taches.filter(t => t.faite).length
@@ -370,6 +396,7 @@ function EtapeSection({
               tache={t}
               onToggle={faite => onToggleTache(t.id, faite)}
               onDelete={() => onDeleteTache(t.id)}
+              onOpen={() => onOpenTache(t)}
             />
           ))}
           <AddTacheInline
@@ -383,13 +410,14 @@ function EtapeSection({
   )
 }
 
-function TacheRow({ tache, onToggle, onDelete }: {
+function TacheRow({ tache, onToggle, onDelete, onOpen }: {
   tache: Tache
   onToggle: (faite: boolean) => void
   onDelete: () => void
+  onOpen: () => void
 }) {
   return (
-    <div className={`flex items-center gap-3 py-2 px-2 rounded-xl group hover:bg-beige-50 transition ${tache.faite ? 'opacity-50' : ''}`}>
+    <div className={`flex items-center gap-2 py-2 px-2 rounded-xl group hover:bg-beige-50 transition ${tache.faite ? 'opacity-50' : ''}`}>
       <button
         onClick={() => onToggle(!tache.faite)}
         className={`w-4 h-4 rounded border-2 flex items-center justify-center shrink-0 transition ${
@@ -398,12 +426,21 @@ function TacheRow({ tache, onToggle, onDelete }: {
       >
         {tache.faite && <Check size={9} className="text-green-600" />}
       </button>
-      <span className={`flex-1 text-sm ${tache.faite ? 'line-through text-muted' : 'text-stone-700'}`}>
+      <PrioDot p={tache.priorite} />
+      <button
+        onClick={onOpen}
+        className={`flex-1 text-sm text-left leading-snug ${tache.faite ? 'line-through text-muted' : 'text-stone-700 hover:text-stone-900'} transition`}
+      >
         {tache.texte}
-      </span>
+      </button>
+      {tache.echeance && (
+        <span className="text-[10px] text-muted shrink-0">
+          {new Date(tache.echeance).toLocaleDateString('fr-FR', { day: 'numeric', month: 'short' })}
+        </span>
+      )}
       <button
         onClick={onDelete}
-        className="opacity-0 group-hover:opacity-100 p-1 text-muted hover:text-red-400 transition"
+        className="opacity-0 group-hover:opacity-100 p-1 text-muted hover:text-red-400 transition shrink-0"
       >
         <Trash2 size={12} />
       </button>

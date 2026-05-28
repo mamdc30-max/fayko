@@ -66,6 +66,9 @@ export default function IdeesPage() {
   const [expanded, setExpanded]         = useState<Record<string, boolean>>({})
   const [showDone, setShowDone]         = useState(false)
   const [suggestions, setSuggestions]   = useState<Record<string, IASuggestion>>({})
+  const [chats, setChats]               = useState<Record<string, { role: 'user' | 'assistant'; content: string }[]>>({})
+  const [chatInputs, setChatInputs]     = useState<Record<string, string>>({})
+  const [chatLoading, setChatLoading]   = useState<Record<string, boolean>>({})
 
   useEffect(() => { load() }, [])
 
@@ -77,6 +80,33 @@ export default function IdeesPage() {
     setIdees((ideesData ?? []) as Idee[])
     setProjets((projetsData ?? []) as Projet[])
     setLoading(false)
+  }
+
+  // IA : suggest-projet — non-blocking, can be called at any point
+  function fetchSuggestion(ideeId: string, texte: string) {
+    if (projets.length === 0) return
+    fetch('/api/suggest-projet', {
+      method: 'POST',
+      headers: { 'content-type': 'application/json' },
+      body: JSON.stringify({ texte, projets }),
+    })
+      .then(r => r.json())
+      .then((result: { projet_id: string | null; raison: string | null }) => {
+        if (result.projet_id && result.raison) {
+          const proj = projets.find(p => p.id === result.projet_id)
+          if (proj) {
+            setSuggestions(prev => ({
+              ...prev,
+              [ideeId]: {
+                projet_id: result.projet_id!,
+                raison: result.raison!,
+                projet_nom: proj.nom,
+              },
+            }))
+          }
+        }
+      })
+      .catch(() => {})
   }
 
   async function create() {
@@ -93,37 +123,50 @@ export default function IdeesPage() {
     if (data) {
       const newIdee = data as Idee
       setIdees(prev => [newIdee, ...prev])
-
-      // Fire IA suggestion async — non-blocking
-      if (projets.length > 0) {
-        fetch('/api/suggest-projet', {
-          method: 'POST',
-          headers: { 'content-type': 'application/json' },
-          body: JSON.stringify({ texte: texteCapture, projets }),
-        })
-          .then(r => r.json())
-          .then((result: { projet_id: string | null; raison: string | null }) => {
-            if (result.projet_id && result.raison) {
-              const proj = projets.find(p => p.id === result.projet_id)
-              if (proj) {
-                setSuggestions(prev => ({
-                  ...prev,
-                  [newIdee.id]: {
-                    projet_id: result.projet_id!,
-                    raison: result.raison!,
-                    projet_nom: proj.nom,
-                  },
-                }))
-              }
-            }
-          })
-          .catch(() => {})
-      }
+      fetchSuggestion(newIdee.id, texteCapture)
     }
 
     setNewTexte('')
     setShowForm(false)
     setSaving(false)
+  }
+
+  async function startChallenge(idee: Idee) {
+    if (chats[idee.id]?.length || chatLoading[idee.id]) return
+    setChatLoading(prev => ({ ...prev, [idee.id]: true }))
+    try {
+      const res = await fetch('/api/challenge-idee', {
+        method: 'POST',
+        headers: { 'content-type': 'application/json' },
+        body: JSON.stringify({ texte: idee.texte, messages: [] }),
+      })
+      const { message } = await res.json() as { message: string | null }
+      if (message) setChats(prev => ({ ...prev, [idee.id]: [{ role: 'assistant' as const, content: message }] }))
+    } catch {}
+    setChatLoading(prev => ({ ...prev, [idee.id]: false }))
+  }
+
+  async function sendChat(idee: Idee) {
+    const input = (chatInputs[idee.id] ?? '').trim()
+    if (!input || chatLoading[idee.id]) return
+    const history = chats[idee.id] ?? []
+    const updated = [...history, { role: 'user' as const, content: input }]
+    setChats(prev => ({ ...prev, [idee.id]: updated }))
+    setChatInputs(prev => ({ ...prev, [idee.id]: '' }))
+    setChatLoading(prev => ({ ...prev, [idee.id]: true }))
+    try {
+      const res = await fetch('/api/challenge-idee', {
+        method: 'POST',
+        headers: { 'content-type': 'application/json' },
+        body: JSON.stringify({ texte: idee.texte, messages: updated }),
+      })
+      const { message } = await res.json() as { message: string | null }
+      if (message) setChats(prev => ({
+        ...prev,
+        [idee.id]: [...(prev[idee.id] ?? []), { role: 'assistant' as const, content: message }],
+      }))
+    } catch {}
+    setChatLoading(prev => ({ ...prev, [idee.id]: false }))
   }
 
   async function updateStatut(id: string, statut: IdeaStatut) {
@@ -261,58 +304,126 @@ export default function IdeesPage() {
 
               {/* Expanded */}
               {isOpen && (
-                <div className="border-t border-border p-4 space-y-3">
+                <div className="border-t border-border">
 
-                  {/* Notes */}
-                  <textarea
-                    value={idee.notes ?? ''}
-                    onChange={e => updateNotes(idee.id, e.target.value)}
-                    placeholder="Notes, contexte, questions..."
-                    rows={2}
-                    className="w-full text-sm border border-border rounded-xl px-3 py-2 focus:outline-none focus:ring-2 focus:ring-primary/30 bg-beige-50 resize-none"
-                  />
+                  {/* ── Sparring IA (statut a_challenger uniquement) ── */}
+                  {idee.statut === 'a_challenger' && (
+                    <div className="p-4 space-y-3 bg-amber-50/50 border-b border-amber-100">
+                      <p className="text-[10px] text-amber-700 font-bold uppercase tracking-wider">
+                        &#x1F916; Sparring IA &mdash; Challenge ton id&eacute;e
+                      </p>
 
-                  {/* Lier a un projet */}
-                  {(idee.statut === 'en_evaluation' || idee.statut === 'liee_projet') && (
-                    <div className="flex items-center gap-2">
-                      <span className="text-xs text-muted shrink-0">Projet :</span>
-                      {linkedProj ? (
-                        <span className="text-xs font-medium text-primary">{linkedProj.nom}</span>
-                      ) : (
-                        <select
-                          onChange={e => e.target.value && linkProjet(idee.id, e.target.value)}
-                          className="text-xs border border-border rounded-lg px-2 py-1.5 bg-beige-50 focus:outline-none"
-                          defaultValue=""
+                      {!chats[idee.id] ? (
+                        /* Pas encore de dialogue : bouton de lancement */
+                        <button
+                          onClick={() => startChallenge(idee)}
+                          disabled={!!chatLoading[idee.id]}
+                          className="w-full text-sm font-semibold text-amber-700 border border-amber-300 bg-white px-3 py-2.5 rounded-xl hover:bg-amber-50 transition disabled:opacity-50"
                         >
-                          <option value="">Choisir un projet...</option>
-                          {projets.map(p => <option key={p.id} value={p.id}>{p.nom}</option>)}
-                        </select>
+                          {chatLoading[idee.id] ? '&#x23F3; Analyse...' : '&#x25BA; Lancer le dialogue'}
+                        </button>
+                      ) : (
+                        /* Chat en cours */
+                        <div className="space-y-3">
+                          <div className="space-y-2 max-h-56 overflow-y-auto pr-1">
+                            {chats[idee.id].map((msg, i) => (
+                              <div key={i} className={`flex ${msg.role === 'user' ? 'justify-end' : 'justify-start'}`}>
+                                <div className={`max-w-[85%] px-3 py-2 rounded-2xl text-xs leading-relaxed ${
+                                  msg.role === 'user'
+                                    ? 'bg-primary text-white'
+                                    : 'bg-white border border-amber-200 text-stone-700'
+                                }`}>
+                                  {msg.content}
+                                </div>
+                              </div>
+                            ))}
+                            {!!chatLoading[idee.id] && (
+                              <div className="flex justify-start">
+                                <div className="bg-white border border-amber-200 text-amber-400 px-3 py-2 rounded-2xl text-xs">&#x23F3;</div>
+                              </div>
+                            )}
+                          </div>
+                          <div className="flex gap-2">
+                            <input
+                              value={chatInputs[idee.id] ?? ''}
+                              onChange={e => setChatInputs(prev => ({ ...prev, [idee.id]: e.target.value }))}
+                              onKeyDown={e => { if (e.key === 'Enter' && !chatLoading[idee.id]) sendChat(idee) }}
+                              placeholder="Ta r&eacute;ponse..."
+                              className="flex-1 text-sm border border-amber-200 rounded-xl px-3 py-2 focus:outline-none focus:ring-2 focus:ring-amber-300 bg-white"
+                            />
+                            <button
+                              onClick={() => sendChat(idee)}
+                              disabled={!(chatInputs[idee.id] ?? '').trim() || !!chatLoading[idee.id]}
+                              className="bg-amber-500 text-white text-sm font-bold px-3 py-2 rounded-xl disabled:opacity-40 hover:bg-amber-600 transition"
+                            >
+                              &#x279C;
+                            </button>
+                          </div>
+                        </div>
                       )}
                     </div>
                   )}
 
-                  {/* Next actions */}
-                  {actions.length > 0 && (
-                    <div className="flex flex-wrap gap-2">
-                      {actions.map(a => (
-                        <button
-                          key={a.next}
-                          onClick={() => updateStatut(idee.id, a.next)}
-                          className="flex items-center gap-1 text-xs font-medium text-primary border border-primary/30 px-2.5 py-1.5 rounded-xl hover:bg-primary-light transition"
-                        >
-                          <ArrowRight size={12} /> {a.label}
-                        </button>
-                      ))}
-                    </div>
-                  )}
+                  <div className="p-4 space-y-3">
 
-                  {/* Delete */}
-                  <button
-                    onClick={() => remove(idee.id)}
-                    className="flex items-center gap-1 text-xs text-muted hover:text-red-400 transition"
-                  >
-                    <Trash2 size={12} /> Supprimer
-                  </button>
+                    {/* Notes */}
+                    <textarea
+                      value={idee.notes ?? ''}
+                      onChange={e => updateNotes(idee.id, e.target.value)}
+                      placeholder="Notes, contexte, questions..."
+                      rows={2}
+                      className="w-full text-sm border border-border rounded-xl px-3 py-2 focus:outline-none focus:ring-2 focus:ring-primary/30 bg-beige-50 resize-none"
+                    />
+
+                    {/* Lier a un projet */}
+                    {(idee.statut === 'en_evaluation' || idee.statut === 'liee_projet') && (
+                      <div className="flex items-center gap-2">
+                        <span className="text-xs text-muted shrink-0">Projet :</span>
+                        {linkedProj ? (
+                          <span className="text-xs font-medium text-primary">{linkedProj.nom}</span>
+                        ) : (
+                          <select
+                            onChange={e => e.target.value && linkProjet(idee.id, e.target.value)}
+                            className="text-xs border border-border rounded-lg px-2 py-1.5 bg-beige-50 focus:outline-none"
+                            defaultValue=""
+                          >
+                            <option value="">Choisir un projet...</option>
+                            {projets.map(p => <option key={p.id} value={p.id}>{p.nom}</option>)}
+                          </select>
+                        )}
+                      </div>
+                    )}
+
+                    {/* Next actions */}
+                    {actions.length > 0 && (
+                      <div className="flex flex-wrap gap-2">
+                        {actions.map(a => (
+                          <button
+                            key={a.next}
+                            onClick={() => {
+                              updateStatut(idee.id, a.next)
+                              if (a.next === 'a_challenger') {
+                                setExpanded(e => ({ ...e, [idee.id]: true }))
+                                startChallenge(idee)
+                              }
+                              if (a.next === 'en_evaluation') fetchSuggestion(idee.id, idee.texte)
+                            }}
+                            className="flex items-center gap-1 text-xs font-medium text-primary border border-primary/30 px-2.5 py-1.5 rounded-xl hover:bg-primary-light transition"
+                          >
+                            <ArrowRight size={12} /> {a.label}
+                          </button>
+                        ))}
+                      </div>
+                    )}
+
+                    {/* Delete */}
+                    <button
+                      onClick={() => remove(idee.id)}
+                      className="flex items-center gap-1 text-xs text-muted hover:text-red-400 transition"
+                    >
+                      <Trash2 size={12} /> Supprimer
+                    </button>
+                  </div>
                 </div>
               )}
             </div>

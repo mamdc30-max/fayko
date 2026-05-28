@@ -101,6 +101,16 @@ export default function PipelinePage() {
     setProspects(prev => prev.filter(x => x.id !== p.id))
   }
 
+  async function changeStatut(p: Prospect, statut: ProspectStatut) {
+    if (p.statut === statut) return
+    const today = new Date().toISOString().split('T')[0]
+    const { data } = await supabase
+      .from('prospects')
+      .update({ statut, last_action_at: today })
+      .eq('id', p.id).select().single()
+    if (data) setProspects(prev => prev.map(x => x.id === p.id ? data as Prospect : x))
+  }
+
   async function addInteraction(prospectId: string, type: InteractionType, label: string, date: string, notes?: string) {
     const { data } = await supabase
       .from('prospect_interactions')
@@ -274,8 +284,8 @@ export default function PipelinePage() {
                     </div>
                   )}
 
-                  {/* Message préparé (source + expanded) */}
-                  {expanded && activeTab === 'source' && p.message_type && (
+                  {/* Message prepare (expanded) */}
+                  {expanded && p.message_type && (
                     <div className="mb-3 bg-stone-50 rounded-xl p-3 border border-stone-100">
                       <p className="text-[10px] text-muted font-bold uppercase tracking-wider mb-1.5">Message préparé</p>
                       <p className="text-xs text-stone-700 leading-relaxed whitespace-pre-line">{p.message_type}</p>
@@ -285,6 +295,28 @@ export default function PipelinePage() {
                   {/* Notes (expanded) */}
                   {expanded && p.notes && (
                     <p className="mb-3 text-xs text-muted bg-beige-50 rounded-xl px-3 py-2 italic leading-relaxed">{p.notes}</p>
+                  )}
+
+                  {/* Statut picker (expanded) */}
+                  {expanded && (
+                    <div className="mb-3">
+                      <p className="text-[10px] text-muted font-bold uppercase tracking-wider mb-1.5">Changer d&apos;&eacute;tape</p>
+                      <div className="flex gap-1.5 flex-wrap">
+                        {ETAPES.map(e => (
+                          <button
+                            key={e.key}
+                            onClick={() => changeStatut(p, e.key)}
+                            className={`px-2.5 py-1.5 text-xs font-semibold rounded-xl border transition ${
+                              p.statut === e.key
+                                ? 'bg-stone-800 text-white border-stone-800'
+                                : 'border-border text-stone-500 hover:border-stone-400 hover:text-stone-700'
+                            }`}
+                          >
+                            {e.label}
+                          </button>
+                        ))}
+                      </div>
+                    </div>
                   )}
 
                   {/* Next step IA */}
@@ -329,7 +361,7 @@ export default function PipelinePage() {
                     </button>
                     <button onClick={() => setExpandedId(expanded ? null : p.id)}
                       className="px-3 py-2.5 text-xs text-muted border border-border rounded-xl hover:bg-beige-50 transition">
-                      {expanded ? '↑' : 'Voir'}
+                      {expanded ? '↑ R&eacute;duire' : '↓ D&eacute;tail'}
                     </button>
                     {activeTab !== 'client' && (
                       <button onClick={() => markPerdu(p)}

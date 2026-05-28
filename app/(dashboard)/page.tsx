@@ -7,6 +7,7 @@ import { formatDate, formatPrice, STATUT_COLORS } from '@/lib/utils'
 import { Bell, Plus, Check, Trash2, CalendarDays, ChevronRight } from 'lucide-react'
 import type { Devis, Client, Tache, AutomationLog, DailyFocus, Projet } from '@/lib/types'
 import { useUserContext } from '@/lib/user-context'
+import TacheModal, { PrioDot } from '@/components/TacheModal'
 
 interface DevisWithClient extends Devis { clients: Client }
 interface Stats { caMois: number; enAttente: number }
@@ -32,6 +33,7 @@ export default function FocusPage() {
   const [projets,     setProjets]     = useState<ProjetActif[]>([])
   const [agendaTaches,setAgendaTaches]= useState<Tache[]>([])
   const [autoLogs,    setAutoLogs]    = useState<AutomationLog[]>([])
+  const [selectedTache, setSelectedTache] = useState<Tache | null>(null)
   const [loading,     setLoading]     = useState(true)
 
   // ── Client state ──
@@ -62,7 +64,7 @@ export default function FocusPage() {
       supabase.from('priorites_hebdo').select('id, texte, cochee').eq('semaine', semaine).order('ordre'),
       supabase.from('projets').select('*').eq('statut', 'actif').order('created_at', { ascending: false }).limit(5),
       supabase.from('etapes').select('projet_id, statut'),
-      supabase.from('taches').select('*').eq('date', today).eq('source', 'agenda'),
+      supabase.from('taches').select('*').lte('date', today).eq('faite', false).order('priorite'),
       supabase.from('automation_logs').select('*').order('ran_at', { ascending: false }).limit(6),
     ])
 
@@ -363,21 +365,47 @@ export default function FocusPage() {
         </section>
       )}
 
-      {/* ── 4. Agenda du jour ── */}
+      {/* ── 4. A faire ── */}
       {agendaTaches.length > 0 && (
         <section className="space-y-2">
-          <h2 className="font-semibold text-stone-800 text-sm flex items-center gap-2">
-            <CalendarDays size={15} className="text-primary" /> Agenda du jour
-          </h2>
+          <div className="flex items-center justify-between">
+            <h2 className="font-semibold text-stone-800 text-sm flex items-center gap-2">
+              <CalendarDays size={15} className="text-primary" /> A faire
+            </h2>
+            <span className="text-xs text-muted">{agendaTaches.length} t&acirc;che{agendaTaches.length > 1 ? 's' : ''}</span>
+          </div>
           <div className="space-y-1.5">
             {agendaTaches.map(t => (
-              <div key={t.id} className="flex items-center gap-3 bg-surface rounded-xl px-3 py-2.5 border border-border">
-                <span className={`w-2 h-2 rounded-full shrink-0 ${t.faite ? 'bg-green-400' : 'bg-primary'}`} />
-                <span className={`text-sm ${t.faite ? 'text-muted line-through' : 'text-stone-700'}`}>{t.texte}</span>
-              </div>
+              <button
+                key={t.id}
+                onClick={() => setSelectedTache(t)}
+                className="w-full flex items-center gap-3 bg-surface rounded-xl px-3 py-2.5 border border-border hover:border-primary/30 hover:bg-beige-50 transition text-left"
+              >
+                <PrioDot p={t.priorite} />
+                <span className="flex-1 text-sm text-stone-700 leading-snug truncate">{t.texte}</span>
+                {t.echeance && (
+                  <span className="text-[10px] text-muted shrink-0">{new Date(t.echeance).toLocaleDateString('fr-FR', { day: 'numeric', month: 'short' })}</span>
+                )}
+              </button>
             ))}
           </div>
         </section>
+      )}
+
+      {selectedTache && (
+        <TacheModal
+          tache={selectedTache}
+          onClose={() => setSelectedTache(null)}
+          onSave={updated => {
+            if (updated.faite) {
+              setAgendaTaches(prev => prev.filter(t => t.id !== updated.id))
+            } else {
+              setAgendaTaches(prev => prev.map(t => t.id === updated.id ? updated : t))
+            }
+            setSelectedTache(null)
+          }}
+          onDelete={id => setAgendaTaches(prev => prev.filter(t => t.id !== id))}
+        />
       )}
 
       {/* ── 5. Statut automations ── */}
