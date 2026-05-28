@@ -34,6 +34,8 @@ export default function FocusPage() {
   const [agendaTaches,setAgendaTaches]= useState<Tache[]>([])
   const [autoLogs,    setAutoLogs]    = useState<AutomationLog[]>([])
   const [selectedTache, setSelectedTache] = useState<Tache | null>(null)
+  const [brief,       setBrief]       = useState<{ salutation: string; actions: string[]; note: string | null } | null>(null)
+  const [briefLoading,setBriefLoading]= useState(false)
   const [loading,     setLoading]     = useState(true)
 
   // ── Client state ──
@@ -119,6 +121,30 @@ export default function FocusPage() {
     setCatalogReady((count ?? 0) > 0)
     setShowOnboarding(!localStorage.getItem('onboarding_done'))
     setLoading(false)
+  }
+
+  async function generateBrief() {
+    setBriefLoading(true)
+    try {
+      const { data: prospectsData } = await supabase
+        .from('prospects')
+        .select('prenom, nom, entreprise, statut, last_action_at')
+        .in('statut', ['contacte', 'en_discussion', 'proposition'])
+
+      const res = await fetch('/api/generate-brief', {
+        method: 'POST',
+        headers: { 'content-type': 'application/json' },
+        body: JSON.stringify({
+          taches:    agendaTaches.map(t => ({ texte: t.texte, priorite: t.priorite })),
+          prospects: prospectsData ?? [],
+          projets:   projets.map(p => ({ nom: p.nom, etapes_done: p.etapes_done, etapes_total: p.etapes_total })),
+          priorites: priorites.filter(p => !p.cochee).map(p => p.texte),
+        }),
+      })
+      const data = await res.json()
+      if (data.salutation) setBrief(data)
+    } catch {}
+    setBriefLoading(false)
   }
 
   async function markFocusDone(id: string) {
@@ -241,6 +267,54 @@ export default function FocusPage() {
         <p className="text-xs text-muted capitalize">{todayLabel}</p>
         <h1 className="text-2xl font-bold text-stone-800">Bonjour 👋</h1>
       </div>
+
+      {/* ── 0. Brief IA du jour ── */}
+      {brief ? (
+        <section className="bg-stone-900 rounded-2xl p-5 space-y-4">
+          <div className="flex items-start justify-between gap-3">
+            <p className="text-white/90 text-sm leading-relaxed font-medium flex-1">{brief.salutation}</p>
+            <button
+              onClick={() => setBrief(null)}
+              className="text-white/30 hover:text-white/60 transition shrink-0 text-lg leading-none"
+            >
+              &#x2715;
+            </button>
+          </div>
+          <div className="space-y-2.5">
+            {brief.actions.map((action, i) => (
+              <div key={i} className="flex items-start gap-3">
+                <span className="text-primary font-bold text-xs shrink-0 mt-0.5 bg-primary/20 rounded-full w-5 h-5 flex items-center justify-center">
+                  {i + 1}
+                </span>
+                <p className="text-white text-sm leading-snug">{action}</p>
+              </div>
+            ))}
+          </div>
+          {brief.note && (
+            <p className="text-white/50 text-xs leading-relaxed border-t border-white/10 pt-3 italic">
+              {brief.note}
+            </p>
+          )}
+          <button
+            onClick={generateBrief}
+            disabled={briefLoading}
+            className="text-xs text-white/40 hover:text-white/60 transition disabled:opacity-30"
+          >
+            {briefLoading ? '&#x23F3; Actualisation...' : '&#x21BA; Actualiser'}
+          </button>
+        </section>
+      ) : (
+        <button
+          onClick={generateBrief}
+          disabled={briefLoading}
+          className="w-full flex items-center justify-center gap-2 bg-stone-800 hover:bg-stone-700 text-white text-sm font-semibold py-3.5 rounded-2xl transition disabled:opacity-50"
+        >
+          {briefLoading
+            ? <><span className="animate-pulse">&#x23F3;</span> Analyse en cours...</>
+            : <>&#x2728; G&eacute;n&eacute;rer mon brief du jour</>
+          }
+        </button>
+      )}
 
       {/* ── 1. Focus du jour (CRM scan) ── */}
       {focusItems.length > 0 && (

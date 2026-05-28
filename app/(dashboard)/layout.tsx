@@ -6,7 +6,7 @@ import Link from 'next/link'
 import { supabase } from '@/lib/supabase'
 import { UserContext } from '@/lib/user-context'
 import {
-  Home, PlusCircle, Clock, Bell, Settings, LogOut, Menu, X,
+  Home, PlusCircle, Clock, Bell, Settings, LogOut, Menu, X, Plus,
   Package, Users2, Network, FolderKanban, Lightbulb, CalendarCheck,
 } from 'lucide-react'
 import { cn } from '@/lib/utils'
@@ -37,9 +37,14 @@ const CLIENT_NAV = [
 export default function DashboardLayout({ children }: { children: React.ReactNode }) {
   const router   = useRouter()
   const pathname = usePathname()
-  const [checking,  setChecking]  = useState(true)
-  const [menuOpen,  setMenuOpen]  = useState(false)
-  const [userEmail, setUserEmail] = useState<string | null>(null)
+  const [checking,    setChecking]    = useState(true)
+  const [menuOpen,    setMenuOpen]    = useState(false)
+  const [userEmail,   setUserEmail]   = useState<string | null>(null)
+  const [quickOpen,   setQuickOpen]   = useState(false)
+  const [quickType,   setQuickType]   = useState<'tache' | 'idee' | null>(null)
+  const [quickTexte,  setQuickTexte]  = useState('')
+  const [quickPrio,   setQuickPrio]   = useState<'haute' | 'normale' | 'basse'>('normale')
+  const [quickSaving, setQuickSaving] = useState(false)
 
   const adminEmail = process.env.NEXT_PUBLIC_ADMIN_EMAIL
   const isAdmin    = !adminEmail || userEmail === adminEmail
@@ -58,6 +63,35 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
   async function handleLogout() {
     await supabase.auth.signOut()
     router.replace('/login')
+  }
+
+  function openQuick() {
+    setQuickType(null)
+    setQuickTexte('')
+    setQuickPrio('normale')
+    setQuickOpen(true)
+  }
+
+  async function saveQuickTache() {
+    if (!quickTexte.trim()) return
+    setQuickSaving(true)
+    const today = new Date().toISOString().split('T')[0]
+    await supabase.from('taches').insert({
+      texte: quickTexte.trim(), faite: false, date: today,
+      priorite: quickPrio, source: 'manuel', projet_id: null, etape_id: null,
+    })
+    setQuickOpen(false)
+    setQuickSaving(false)
+  }
+
+  async function saveQuickIdee() {
+    if (!quickTexte.trim()) return
+    setQuickSaving(true)
+    await supabase.from('idees').insert({
+      texte: quickTexte.trim(), statut: 'capture', notes: null, projet_id: null,
+    })
+    setQuickOpen(false)
+    setQuickSaving(false)
   }
 
   if (checking) {
@@ -162,6 +196,108 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
           </UserContext.Provider>
         </div>
       </main>
+
+      {/* ── Bouton flottant capture rapide (admin seulement) ── */}
+      {isAdmin && (
+        <>
+          <button
+            onClick={openQuick}
+            className="fixed bottom-[72px] right-4 md:bottom-6 md:right-6 z-40 w-13 h-13 w-[52px] h-[52px] bg-primary text-white rounded-full shadow-xl flex items-center justify-center hover:bg-primary-dark transition active:scale-95"
+            aria-label="Capture rapide"
+          >
+            <Plus size={24} />
+          </button>
+
+          {quickOpen && (
+            <div
+              className="fixed inset-0 bg-black/40 z-50 flex items-end justify-center"
+              onClick={() => setQuickOpen(false)}
+            >
+              <div
+                className="bg-white w-full max-w-lg rounded-t-3xl p-6 space-y-4"
+                onClick={e => e.stopPropagation()}
+              >
+                <div className="w-10 h-1 bg-stone-200 rounded-full mx-auto" />
+                <h2 className="font-bold text-stone-800 text-center text-base">Capture rapide</h2>
+
+                {!quickType ? (
+                  <div className="grid grid-cols-2 gap-3 pb-2">
+                    <button
+                      onClick={() => setQuickType('tache')}
+                      className="flex flex-col items-center gap-2 p-5 border-2 border-border rounded-2xl hover:border-primary/40 hover:bg-primary-light transition"
+                    >
+                      <span className="text-3xl">&#x2705;</span>
+                      <span className="font-bold text-stone-700 text-sm">T&acirc;che</span>
+                      <span className="text-xs text-muted text-center">&Agrave; faire aujourd&apos;hui</span>
+                    </button>
+                    <button
+                      onClick={() => setQuickType('idee')}
+                      className="flex flex-col items-center gap-2 p-5 border-2 border-border rounded-2xl hover:border-primary/40 hover:bg-primary-light transition"
+                    >
+                      <span className="text-3xl">&#x1F4A1;</span>
+                      <span className="font-bold text-stone-700 text-sm">Id&eacute;e</span>
+                      <span className="text-xs text-muted text-center">Capturer une id&eacute;e</span>
+                    </button>
+                  </div>
+                ) : (
+                  <div className="space-y-3 pb-2">
+                    <textarea
+                      autoFocus
+                      value={quickTexte}
+                      onChange={e => setQuickTexte(e.target.value)}
+                      onKeyDown={e => {
+                        if (e.key === 'Enter' && !e.shiftKey) {
+                          e.preventDefault()
+                          quickType === 'tache' ? saveQuickTache() : saveQuickIdee()
+                        }
+                      }}
+                      placeholder={quickType === 'tache' ? 'Decris la tache...' : 'Ton idee...'}
+                      rows={3}
+                      className="w-full border border-border rounded-xl px-3 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-primary/30 resize-none bg-beige-50"
+                    />
+
+                    {quickType === 'tache' && (
+                      <div className="flex gap-2">
+                        {(['haute', 'normale', 'basse'] as const).map(p => (
+                          <button
+                            key={p}
+                            onClick={() => setQuickPrio(p)}
+                            className={`flex-1 py-2 rounded-xl text-xs font-bold border transition ${
+                              quickPrio === p
+                                ? p === 'haute'   ? 'bg-red-500 text-white border-red-500'
+                                : p === 'normale' ? 'bg-stone-600 text-white border-stone-600'
+                                :                   'bg-stone-200 text-stone-600 border-stone-200'
+                                : 'border-border text-muted hover:border-stone-300'
+                            }`}
+                          >
+                            {p === 'haute' ? 'Haute' : p === 'normale' ? 'Normale' : 'Basse'}
+                          </button>
+                        ))}
+                      </div>
+                    )}
+
+                    <div className="flex gap-2">
+                      <button
+                        onClick={() => setQuickType(null)}
+                        className="px-4 py-3 text-sm text-muted border border-border rounded-xl hover:bg-beige-100 transition"
+                      >
+                        &larr;
+                      </button>
+                      <button
+                        onClick={quickType === 'tache' ? saveQuickTache : saveQuickIdee}
+                        disabled={!quickTexte.trim() || quickSaving}
+                        className="flex-1 bg-primary text-white py-3 rounded-xl text-sm font-bold disabled:opacity-40 hover:bg-primary-dark transition"
+                      >
+                        {quickSaving ? 'Enregistrement...' : 'Sauvegarder'}
+                      </button>
+                    </div>
+                  </div>
+                )}
+              </div>
+            </div>
+          )}
+        </>
+      )}
 
       {/* Mobile bottom nav */}
       <nav className="md:hidden fixed bottom-0 left-0 right-0 bg-surface border-t border-border z-30 flex">
