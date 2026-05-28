@@ -45,7 +45,7 @@ export default function SignupPage() {
           <div className="text-4xl">✅</div>
           <h2 className="text-xl font-bold text-stone-800">Compte créé !</h2>
           <p className="text-sm text-muted">
-            Un email de confirmation t&apos;a été envoyé à <strong>{email}</strong>.
+            Un email de confirmation t'a été envoyé à <strong>{email}</strong>.
             Clique sur le lien pour activer ton compte, puis connecte-toi.
           </p>
           <button

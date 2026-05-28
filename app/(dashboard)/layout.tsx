@@ -226,17 +226,17 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
                       onClick={() => setQuickType('tache')}
                       className="flex flex-col items-center gap-2 p-5 border-2 border-border rounded-2xl hover:border-primary/40 hover:bg-primary-light transition"
                     >
-                      <span className="text-3xl">&#x2705;</span>
-                      <span className="font-bold text-stone-700 text-sm">T&acirc;che</span>
-                      <span className="text-xs text-muted text-center">&Agrave; faire aujourd&apos;hui</span>
+                      <span className="text-3xl">✅</span>
+                      <span className="font-bold text-stone-700 text-sm">Tâche</span>
+                      <span className="text-xs text-muted text-center">À faire aujourd'hui</span>
                     </button>
                     <button
                       onClick={() => setQuickType('idee')}
                       className="flex flex-col items-center gap-2 p-5 border-2 border-border rounded-2xl hover:border-primary/40 hover:bg-primary-light transition"
                     >
-                      <span className="text-3xl">&#x1F4A1;</span>
-                      <span className="font-bold text-stone-700 text-sm">Id&eacute;e</span>
-                      <span className="text-xs text-muted text-center">Capturer une id&eacute;e</span>
+                      <span className="text-3xl">💡</span>
+                      <span className="font-bold text-stone-700 text-sm">Idée</span>
+                      <span className="text-xs text-muted text-center">Capturer une idée</span>
                     </button>
                   </div>
                 ) : (
@@ -251,7 +251,7 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
                           quickType === 'tache' ? saveQuickTache() : saveQuickIdee()
                         }
                       }}
-                      placeholder={quickType === 'tache' ? 'Decris la tache...' : 'Ton idee...'}
+                      placeholder={quickType === 'tache' ? 'Décris la tâche...' : 'Ton idée...'}
                       rows={3}
                       className="w-full border border-border rounded-xl px-3 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-primary/30 resize-none bg-beige-50"
                     />
@@ -281,7 +281,7 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
                         onClick={() => setQuickType(null)}
                         className="px-4 py-3 text-sm text-muted border border-border rounded-xl hover:bg-beige-100 transition"
                       >
-                        &larr;
+                        ←
                       </button>
                       <button
                         onClick={quickType === 'tache' ? saveQuickTache : saveQuickIdee}

@@ -79,7 +79,7 @@ export default function TacheModal({ tache, onClose, onSave, onDelete }: Props) 
 
         {/* Header */}
         <div className="flex items-center justify-between">
-          <h2 className="font-bold text-stone-800">T&acirc;che</h2>
+          <h2 className="font-bold text-stone-800">Tâche</h2>
           <button onClick={onClose} className="text-muted hover:text-stone-700 transition p-1">
             <X size={18} />
           </button>
@@ -99,7 +99,7 @@ export default function TacheModal({ tache, onClose, onSave, onDelete }: Props) 
 
         {/* Priorite */}
         <div>
-          <label className="text-xs text-muted mb-1.5 block font-semibold uppercase tracking-wider">Priorit&eacute;</label>
+          <label className="text-xs text-muted mb-1.5 block font-semibold uppercase tracking-wider">Priorité</label>
           <div className="flex gap-2">
             {(['haute', 'normale', 'basse'] as Prio[]).map(p => (
               <button
@@ -127,7 +127,7 @@ export default function TacheModal({ tache, onClose, onSave, onDelete }: Props) 
             />
           </div>
           <div>
-            <label className="text-xs text-muted mb-1.5 block font-semibold uppercase tracking-wider">Ech&eacute;ance</label>
+            <label className="text-xs text-muted mb-1.5 block font-semibold uppercase tracking-wider">Échéance</label>
             <input
               type="date"
               value={echeance}
@@ -167,7 +167,7 @@ export default function TacheModal({ tache, onClose, onSave, onDelete }: Props) 
             className="flex items-center gap-1.5 text-xs text-muted hover:text-red-400 transition"
           >
             <Trash2 size={12} />
-            {deleting ? 'Suppression...' : 'Supprimer cette t&acirc;che'}
+            {deleting ? 'Suppression...' : 'Supprimer cette tâche'}
           </button>
         </div>
       </div>

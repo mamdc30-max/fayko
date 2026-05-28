@@ -9,6 +9,28 @@ import type { Devis, Client, Tache, AutomationLog, DailyFocus, Projet } from '@/
 import { useUserContext } from '@/lib/user-context'
 import TacheModal, { PrioDot } from '@/components/TacheModal'
 
+// ── Badge d'échéance coloré ──────────────────────────────────────────────────
+function EcheanceTag({ date }: { date: string }) {
+  const today    = new Date().toISOString().split('T')[0]
+  const tomorrow = new Date(); tomorrow.setDate(tomorrow.getDate() + 1)
+  const tomorrowStr = tomorrow.toISOString().split('T')[0]
+
+  let label: string
+  let cls: string
+
+  if (date < today)            { label = 'En retard';    cls = 'text-red-500 bg-red-50' }
+  else if (date === today)     { label = "Aujourd'hui";  cls = 'text-amber-600 bg-amber-50' }
+  else if (date === tomorrowStr){ label = 'Demain';      cls = 'text-stone-500 bg-stone-50' }
+  else {
+    label = new Date(date + 'T00:00:00').toLocaleDateString('fr-FR', { day: 'numeric', month: 'short' })
+    cls = 'text-stone-400 bg-stone-50'
+  }
+
+  return <span className={`text-[10px] px-1.5 py-0.5 rounded-md font-medium shrink-0 ${cls}`}>{label}</span>
+}
+
+const PRIO_ORDER: Record<string, number> = { haute: 0, normale: 1, basse: 2 }
+
 interface DevisWithClient extends Devis { clients: Client }
 interface Stats { caMois: number; enAttente: number }
 
@@ -66,13 +88,24 @@ export default function FocusPage() {
       supabase.from('priorites_hebdo').select('id, texte, cochee').eq('semaine', semaine).order('ordre'),
       supabase.from('projets').select('*').eq('statut', 'actif').order('created_at', { ascending: false }).limit(5),
       supabase.from('etapes').select('projet_id, statut'),
-      supabase.from('taches').select('*').lte('date', today).eq('faite', false).order('priorite'),
+      supabase.from('taches').select('*').lte('date', today).eq('faite', false),
       supabase.from('automation_logs').select('*').order('ran_at', { ascending: false }).limit(6),
     ])
 
     setFocusItems((focus ?? []) as DailyFocus[])
     setPriorites((prios ?? []) as Priorite[])
-    setAgendaTaches((agenda ?? []) as Tache[])
+
+    // Tri : haute → normale → basse, puis par échéance croissante
+    const sorted = [...(agenda ?? [])].sort((a, b) => {
+      const pa = PRIO_ORDER[a.priorite] ?? 1
+      const pb = PRIO_ORDER[b.priorite] ?? 1
+      if (pa !== pb) return pa - pb
+      if (a.echeance && b.echeance) return a.echeance < b.echeance ? -1 : 1
+      if (a.echeance) return -1
+      if (b.echeance) return 1
+      return 0
+    })
+    setAgendaTaches(sorted as Tache[])
 
     // Projets with progress
     const etapesMap: Record<string, { total: number; done: number }> = {}
@@ -277,7 +310,7 @@ export default function FocusPage() {
               onClick={() => setBrief(null)}
               className="text-white/30 hover:text-white/60 transition shrink-0 text-lg leading-none"
             >
-              &#x2715;
+              ✕
             </button>
           </div>
           <div className="space-y-2.5">
@@ -300,7 +333,7 @@ export default function FocusPage() {
             disabled={briefLoading}
             className="text-xs text-white/40 hover:text-white/60 transition disabled:opacity-30"
           >
-            {briefLoading ? '&#x23F3; Actualisation...' : '&#x21BA; Actualiser'}
+            {briefLoading ? '⏳ Actualisation...' : '↺ Actualiser'}
           </button>
         </section>
       ) : (
@@ -310,8 +343,8 @@ export default function FocusPage() {
           className="w-full flex items-center justify-center gap-2 bg-stone-800 hover:bg-stone-700 text-white text-sm font-semibold py-3.5 rounded-2xl transition disabled:opacity-50"
         >
           {briefLoading
-            ? <><span className="animate-pulse">&#x23F3;</span> Analyse en cours...</>
-            : <>&#x2728; G&eacute;n&eacute;rer mon brief du jour</>
+            ? <><span className="animate-pulse">⏳</span> Analyse en cours...</>
+            : <>✨ Générer mon brief du jour</>
           }
         </button>
       )}
@@ -446,7 +479,7 @@ export default function FocusPage() {
             <h2 className="font-semibold text-stone-800 text-sm flex items-center gap-2">
               <CalendarDays size={15} className="text-primary" /> A faire
             </h2>
-            <span className="text-xs text-muted">{agendaTaches.length} t&acirc;che{agendaTaches.length > 1 ? 's' : ''}</span>
+            <span className="text-xs text-muted">{agendaTaches.length} tâche{agendaTaches.length > 1 ? 's' : ''}</span>
           </div>
           <div className="space-y-1.5">
             {agendaTaches.map(t => (
@@ -457,9 +490,7 @@ export default function FocusPage() {
               >
                 <PrioDot p={t.priorite} />
                 <span className="flex-1 text-sm text-stone-700 leading-snug truncate">{t.texte}</span>
-                {t.echeance && (
-                  <span className="text-[10px] text-muted shrink-0">{new Date(t.echeance).toLocaleDateString('fr-FR', { day: 'numeric', month: 'short' })}</span>
-                )}
+                {t.echeance && <EcheanceTag date={t.echeance} />}
               </button>
             ))}
           </div>

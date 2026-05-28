@@ -300,7 +300,7 @@ export default function PipelinePage() {
                   {/* Statut picker (expanded) */}
                   {expanded && (
                     <div className="mb-3">
-                      <p className="text-[10px] text-muted font-bold uppercase tracking-wider mb-1.5">Changer d&apos;&eacute;tape</p>
+                      <p className="text-[10px] text-muted font-bold uppercase tracking-wider mb-1.5">Changer d'étape</p>
                       <div className="flex gap-1.5 flex-wrap">
                         {ETAPES.map(e => (
                           <button
@@ -324,15 +324,15 @@ export default function PipelinePage() {
                     <div className="mb-3">
                       {nextSteps[p.id] ? (
                         <div className="flex items-start gap-2 bg-violet-50 border border-violet-200 rounded-xl px-3 py-2.5">
-                          <span className="text-sm shrink-0">&#x1F4A1;</span>
+                          <span className="text-sm shrink-0">💡</span>
                           <div className="flex-1 min-w-0">
-                            <p className="text-[10px] text-violet-500 font-bold uppercase tracking-wider mb-0.5">Prochaine etape</p>
+                            <p className="text-[10px] text-violet-500 font-bold uppercase tracking-wider mb-0.5">Prochaine étape</p>
                             <p className="text-xs text-violet-900 font-medium leading-snug">{nextSteps[p.id]}</p>
                           </div>
                           <button
                             onClick={() => setNextSteps(prev => { const n = { ...prev }; delete n[p.id]; return n })}
                             className="text-violet-400 hover:text-violet-600 text-xs shrink-0 mt-0.5"
-                          >&#x2715;</button>
+                          >✕</button>
                         </div>
                       ) : (
                         <button
@@ -340,7 +340,7 @@ export default function PipelinePage() {
                           disabled={loadingStep[p.id]}
                           className="flex items-center gap-1.5 text-xs font-semibold text-violet-600 border border-violet-200 bg-violet-50 px-3 py-2 rounded-xl hover:bg-violet-100 transition disabled:opacity-50"
                         >
-                          {loadingStep[p.id] ? '⏳ Analyse...' : '💡 Prochaine etape'}
+                          {loadingStep[p.id] ? '⏳ Analyse...' : '💡 Prochaine étape'}
                         </button>
                       )}
                     </div>
@@ -361,7 +361,7 @@ export default function PipelinePage() {
                     </button>
                     <button onClick={() => setExpandedId(expanded ? null : p.id)}
                       className="px-3 py-2.5 text-xs text-muted border border-border rounded-xl hover:bg-beige-50 transition">
-                      {expanded ? '↑ R&eacute;duire' : '↓ D&eacute;tail'}
+                      {expanded ? '↑ Réduire' : '↓ Détail'}
                     </button>
                     {activeTab !== 'client' && (
                       <button onClick={() => markPerdu(p)}

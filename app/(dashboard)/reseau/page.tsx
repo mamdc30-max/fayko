@@ -80,7 +80,7 @@ export default function ReseauPage() {
       nom:            contact.nom ?? '',
       entreprise:     contact.entreprise,
       notes:          contact.sujet,
-      source_detail:  contact.evenement ? `Evenement : ${contact.evenement}` : 'Reseau',
+      source_detail:  contact.evenement ? `Événement : ${contact.evenement}` : 'Réseau',
       statut:         'source',
       last_action_at: today,
       montant_estime: 0,
@@ -112,10 +112,10 @@ export default function ReseauPage() {
       {/* Header */}
       <div className="flex items-center justify-between">
         <div>
-          <h1 className="text-xl font-bold text-stone-800">Reseau</h1>
+          <h1 className="text-xl font-bold text-stone-800">Réseau</h1>
           <p className="text-xs text-muted mt-0.5">
             {contacts.length} contact{contacts.length !== 1 ? 's' : ''}
-            {toQualify > 0 && <span className="text-amber-600 font-medium"> &middot; {toQualify} a qualifier</span>}
+            {toQualify > 0 && <span className="text-amber-600 font-medium"> · {toQualify} à qualifier</span>}
           </p>
         </div>
         <button
@@ -157,7 +157,7 @@ export default function ReseauPage() {
                   autoFocus
                   value={form.prenom}
                   onChange={e => setForm(f => ({ ...f, prenom: e.target.value }))}
-                  placeholder="Prenom *"
+                  placeholder="Prénom *"
                   className="text-sm border border-border rounded-xl px-3 py-2.5 focus:outline-none focus:ring-2 focus:ring-primary/30 bg-beige-50"
                 />
                 <input
@@ -176,7 +176,7 @@ export default function ReseauPage() {
               <input
                 value={form.evenement}
                 onChange={e => setForm(f => ({ ...f, evenement: e.target.value }))}
-                placeholder="Evenement / lieu de rencontre"
+                placeholder="Événement / lieu de rencontre"
                 className="w-full text-sm border border-border rounded-xl px-3 py-2.5 focus:outline-none focus:ring-2 focus:ring-primary/30 bg-beige-50"
               />
               <textarea
@@ -254,7 +254,7 @@ export default function ReseauPage() {
                     <div className="flex-1 min-w-0">
                       <div className="flex items-center gap-2 flex-wrap">
                         <span className="text-sm font-semibold text-stone-800">{fullName}</span>
-                        {c.entreprise && <span className="text-xs text-muted">&#xB7; {c.entreprise}</span>}
+                        {c.entreprise && <span className="text-xs text-muted">· {c.entreprise}</span>}
                         {c.converti && (
                           <span className="text-[10px] bg-green-50 text-green-600 px-1.5 py-0.5 rounded-md">Dans le pipeline</span>
                         )}
@@ -286,7 +286,7 @@ export default function ReseauPage() {
                                     : 'border-border text-muted hover:border-stone-300'
                                 }`}
                               >
-                                {c.qualification === q && <span className="mr-1">&#x2713;</span>}
+                                {c.qualification === q && <span className="mr-1">✓</span>}
                                 {QUAL_CONFIG[q].label}
                               </button>
                             ))}
@@ -324,10 +324,10 @@ export default function ReseauPage() {
 
             {filtered.length === 0 && (
               <div className="text-center py-10 bg-surface border border-border rounded-2xl">
-                <p className="text-3xl mb-2">&#x1F91D;</p>
+                <p className="text-3xl mb-2">🤝</p>
                 <p className="text-sm font-medium text-stone-700">
                   {tab === 'tous'
-                    ? 'Aucun contact dans le reseau'
+                    ? 'Aucun contact dans le réseau'
                     : `Aucun contact "${FILTER_TABS.find(t => t.key === tab)?.label}"`}
                 </p>
                 <p className="text-xs text-muted mt-1">Clique sur &quot;Ajouter&quot; pour saisir un contact</p>
@@ -354,14 +354,14 @@ export default function ReseauPage() {
 
           {annuaireItems.length === 0 ? (
             <div className="text-center py-10 bg-surface border border-border rounded-2xl">
-              <p className="text-3xl mb-2">&#x1F4DA;</p>
+              <p className="text-3xl mb-2">📚</p>
               <p className="text-sm font-medium text-stone-700">
-                {search ? 'Aucun resultat' : 'Annuaire vide'}
+                {search ? 'Aucun résultat' : 'Annuaire vide'}
               </p>
               <p className="text-xs text-muted mt-1">
                 {search
                   ? 'Essaie un autre terme de recherche'
-                  : 'Les prestataires et partenaires qualifies apparaissent ici'}
+                  : 'Les prestataires et partenaires qualifiés apparaissent ici'}
               </p>
             </div>
           ) : (
@@ -399,7 +399,7 @@ export default function ReseauPage() {
                           </div>
                           {c.evenement && (
                             <p className="text-[11px] text-muted mt-2 flex items-center gap-1">
-                              <span>&#x1F4CD;</span> {c.evenement}
+                              <span>📍</span> {c.evenement}
                             </p>
                           )}
                         </div>

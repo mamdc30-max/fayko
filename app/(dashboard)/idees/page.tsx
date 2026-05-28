@@ -52,8 +52,8 @@ const DONE_STATUTS:   IdeaStatut[] = ['transformee_tache', 'transformee_projet',
 const NEXT_ACTIONS: Partial<Record<IdeaStatut, { label: string; next: IdeaStatut }[]>> = {
   capture:       [{ label: 'Challenger', next: 'a_challenger' }, { label: 'Mettre en attente', next: 'en_attente' }],
   a_challenger:  [{ label: 'Evaluer',    next: 'en_evaluation' }, { label: 'Abandonner', next: 'abandonnee' }],
-  en_evaluation: [{ label: 'Lier a un projet', next: 'liee_projet' }, { label: 'En attente', next: 'en_attente' }],
-  liee_projet:   [{ label: 'Creer une tache', next: 'transformee_tache' }, { label: 'Creer un projet', next: 'transformee_projet' }],
+  en_evaluation: [{ label: 'Lier à un projet', next: 'liee_projet' }, { label: 'En attente', next: 'en_attente' }],
+  liee_projet:   [{ label: 'Créer une tâche', next: 'transformee_tache' }, { label: 'Créer un projet', next: 'transformee_projet' }],
 }
 
 export default function IdeesPage() {
@@ -227,7 +227,7 @@ export default function IdeesPage() {
             autoFocus
             value={newTexte}
             onChange={e => setNewTexte(e.target.value)}
-            placeholder="Decris ton idee..."
+            placeholder="Décris ton idée..."
             rows={3}
             className="w-full text-sm border border-border rounded-xl px-3 py-2.5 focus:outline-none focus:ring-2 focus:ring-primary/30 bg-beige-50 resize-none"
           />
@@ -278,10 +278,10 @@ export default function IdeesPage() {
               {/* IA Suggestion banner */}
               {suggestion && (
                 <div className="mx-4 mb-3 bg-amber-50 border border-amber-200 rounded-xl px-3 py-2.5 flex items-start gap-2">
-                  <span className="text-sm shrink-0">&#x1F4A1;</span>
+                  <span className="text-sm shrink-0">💡</span>
                   <div className="flex-1 min-w-0">
                     <p className="text-xs text-amber-800 font-semibold leading-snug">
-                      Lier a <strong>{suggestion.projet_nom}</strong>&nbsp;?
+                      Lier à <strong>{suggestion.projet_nom}</strong>&nbsp;?
                     </p>
                     <p className="text-[11px] text-amber-700 mt-0.5 leading-relaxed">{suggestion.raison}</p>
                   </div>
@@ -296,7 +296,7 @@ export default function IdeesPage() {
                       onClick={() => dismissSuggestion(idee.id)}
                       className="text-[11px] text-amber-700 px-2 py-1 rounded-lg font-medium hover:bg-amber-100 transition"
                     >
-                      &#x2715;
+                      ✕
                     </button>
                   </div>
                 </div>
@@ -310,7 +310,7 @@ export default function IdeesPage() {
                   {idee.statut === 'a_challenger' && (
                     <div className="p-4 space-y-3 bg-amber-50/50 border-b border-amber-100">
                       <p className="text-[10px] text-amber-700 font-bold uppercase tracking-wider">
-                        &#x1F916; Sparring IA &mdash; Challenge ton id&eacute;e
+                        🤖 Sparring IA — Challenge ton idée
                       </p>
 
                       {!chats[idee.id] ? (
@@ -320,7 +320,7 @@ export default function IdeesPage() {
                           disabled={!!chatLoading[idee.id]}
                           className="w-full text-sm font-semibold text-amber-700 border border-amber-300 bg-white px-3 py-2.5 rounded-xl hover:bg-amber-50 transition disabled:opacity-50"
                         >
-                          {chatLoading[idee.id] ? '&#x23F3; Analyse...' : '&#x25BA; Lancer le dialogue'}
+                          {chatLoading[idee.id] ? '⏳ Analyse...' : '▶ Lancer le dialogue'}
                         </button>
                       ) : (
                         /* Chat en cours */
@@ -339,7 +339,7 @@ export default function IdeesPage() {
                             ))}
                             {!!chatLoading[idee.id] && (
                               <div className="flex justify-start">
-                                <div className="bg-white border border-amber-200 text-amber-400 px-3 py-2 rounded-2xl text-xs">&#x23F3;</div>
+                                <div className="bg-white border border-amber-200 text-amber-400 px-3 py-2 rounded-2xl text-xs">⏳</div>
                               </div>
                             )}
                           </div>
@@ -348,7 +348,7 @@ export default function IdeesPage() {
                               value={chatInputs[idee.id] ?? ''}
                               onChange={e => setChatInputs(prev => ({ ...prev, [idee.id]: e.target.value }))}
                               onKeyDown={e => { if (e.key === 'Enter' && !chatLoading[idee.id]) sendChat(idee) }}
-                              placeholder="Ta r&eacute;ponse..."
+                              placeholder="Ta réponse..."
                               className="flex-1 text-sm border border-amber-200 rounded-xl px-3 py-2 focus:outline-none focus:ring-2 focus:ring-amber-300 bg-white"
                             />
                             <button
@@ -356,7 +356,7 @@ export default function IdeesPage() {
                               disabled={!(chatInputs[idee.id] ?? '').trim() || !!chatLoading[idee.id]}
                               className="bg-amber-500 text-white text-sm font-bold px-3 py-2 rounded-xl disabled:opacity-40 hover:bg-amber-600 transition"
                             >
-                              &#x279C;
+                              ➜
                             </button>
                           </div>
                         </div>
@@ -432,9 +432,9 @@ export default function IdeesPage() {
 
         {active.length === 0 && !showForm && (
           <div className="text-center py-10 bg-surface border border-border rounded-2xl">
-            <p className="text-3xl mb-2">&#x1F4A1;</p>
-            <p className="text-sm font-medium text-stone-700">Aucune idee en cours</p>
-            <p className="text-xs text-muted mt-1">Clique sur &quot;Capturer&quot; pour noter une idee</p>
+            <p className="text-3xl mb-2">💡</p>
+            <p className="text-sm font-medium text-stone-700">Aucune idée en cours</p>
+            <p className="text-xs text-muted mt-1">Clique sur "Capturer" pour noter une idée</p>
           </div>
         )}
       </div>
