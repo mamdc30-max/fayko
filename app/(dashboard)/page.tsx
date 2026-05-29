@@ -387,11 +387,6 @@ export default function FocusPage() {
         </section>
       )}
 
-      {focusItems.length === 0 && (
-        <section className="bg-surface border border-dashed border-border rounded-2xl px-4 py-5 text-center">
-          <p className="text-xs text-muted">Aucun focus du jour · Lance le scan CRM pour générer les actions</p>
-        </section>
-      )}
 
       {/* ── 2. Priorités de la semaine ── */}
       {priorites.length > 0 && (
