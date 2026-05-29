@@ -51,7 +51,7 @@ export default function ReseauPage() {
     if (!form.prenom.trim()) return
     setSaving(true)
     const today = new Date().toISOString().split('T')[0]
-    const { data } = await supabase.from('contacts_reseau').insert({
+    await supabase.from('contacts_reseau').insert({
       prenom:        form.prenom.trim(),
       nom:           form.nom.trim() || null,
       entreprise:    form.entreprise.trim() || null,
@@ -61,8 +61,9 @@ export default function ReseauPage() {
       rencontre_at:  today,
       rappel_fait:   false,
       converti:      false,
-    }).select().single()
-    if (data) setContacts(prev => [data as ContactReseau, ...prev])
+    })
+    await load()
+    setExpanded({})
     setForm(emptyForm)
     setShowForm(false)
     setSaving(false)
