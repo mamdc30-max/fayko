@@ -1,6 +1,6 @@
 'use client'
 
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
 import { X, Check, Trash2 } from 'lucide-react'
 import { supabase } from '@/lib/supabase'
 import type { Tache } from '@/lib/types'
@@ -11,6 +11,8 @@ interface Props {
   onSave: (updated: Tache) => void
   onDelete: (id: string) => void
 }
+
+interface ProjetLight { id: string; nom: string }
 
 type Prio = 'haute' | 'normale' | 'basse'
 
@@ -29,8 +31,15 @@ export default function TacheModal({ tache, onClose, onSave, onDelete }: Props) 
   const [priorite, setPriorite] = useState<Prio>(tache.priorite)
   const [echeance, setEcheance] = useState(tache.echeance ?? '')
   const [date,     setDate]     = useState(tache.date)
+  const [projetId, setProjetId] = useState<string>(tache.projet_id ?? '')
+  const [projets,  setProjets]  = useState<ProjetLight[]>([])
   const [saving,   setSaving]   = useState(false)
   const [deleting, setDeleting] = useState(false)
+
+  useEffect(() => {
+    supabase.from('projets').select('id, nom').in('statut', ['actif', 'en_pause']).order('nom')
+      .then(({ data }) => setProjets((data ?? []) as ProjetLight[]))
+  }, [])
 
   async function save() {
     if (!texte.trim()) return
@@ -40,6 +49,7 @@ export default function TacheModal({ tache, onClose, onSave, onDelete }: Props) 
       priorite,
       echeance: echeance || null,
       date,
+      projet_id: projetId || null,
     }).eq('id', tache.id).select().single()
     if (data) onSave(data as Tache)
     setSaving(false)
@@ -135,6 +145,21 @@ export default function TacheModal({ tache, onClose, onSave, onDelete }: Props) 
               className="w-full border border-border rounded-xl px-3 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-primary/30 bg-beige-50"
             />
           </div>
+        </div>
+
+        {/* Projet */}
+        <div>
+          <label className="text-xs text-muted mb-1.5 block font-semibold uppercase tracking-wider">Projet li&#233;</label>
+          <select
+            value={projetId}
+            onChange={e => setProjetId(e.target.value)}
+            className="w-full border border-border rounded-xl px-3 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-primary/30 bg-beige-50 text-stone-700"
+          >
+            <option value="">&#8212; Aucun projet</option>
+            {projets.map(p => (
+              <option key={p.id} value={p.id}>{p.nom}</option>
+            ))}
+          </select>
         </div>
 
         {/* Actions */}
