@@ -33,6 +33,7 @@ const PRIO_ORDER: Record<string, number> = { haute: 0, normale: 1, basse: 2 }
 
 interface DevisWithClient extends Devis { clients: Client }
 interface Stats { caMois: number; enAttente: number }
+interface TacheAvecProjet extends Tache { projets?: { id: string; nom: string } | null }
 
 function getISOWeek(date = new Date()): string {
   const d = new Date(date)
@@ -53,7 +54,7 @@ export default function FocusPage() {
   const [focusItems,  setFocusItems]  = useState<DailyFocus[]>([])
   const [priorites,   setPriorites]   = useState<Priorite[]>([])
   const [projets,     setProjets]     = useState<ProjetActif[]>([])
-  const [agendaTaches,setAgendaTaches]= useState<Tache[]>([])
+  const [agendaTaches,setAgendaTaches]= useState<TacheAvecProjet[]>([])
   const [autoLogs,    setAutoLogs]    = useState<AutomationLog[]>([])
   const [selectedTache, setSelectedTache] = useState<Tache | null>(null)
   const [brief,       setBrief]       = useState<{ salutation: string; actions: string[]; note: string | null } | null>(null)
@@ -88,7 +89,7 @@ export default function FocusPage() {
       supabase.from('priorites_hebdo').select('id, texte, cochee').eq('semaine', semaine).order('ordre'),
       supabase.from('projets').select('*').eq('statut', 'actif').order('created_at', { ascending: false }).limit(5),
       supabase.from('etapes').select('projet_id, statut'),
-      supabase.from('taches').select('*').lte('date', today).eq('faite', false),
+      supabase.from('taches').select('*, projets(id, nom)').lte('date', today).eq('faite', false),
       supabase.from('automation_logs').select('*').order('ran_at', { ascending: false }).limit(6),
     ])
 
@@ -105,7 +106,7 @@ export default function FocusPage() {
       if (b.echeance) return 1
       return 0
     })
-    setAgendaTaches(sorted as Tache[])
+    setAgendaTaches(sorted as TacheAvecProjet[])
 
     // Projets with progress
     const etapesMap: Record<string, { total: number; done: number }> = {}
@@ -484,7 +485,14 @@ export default function FocusPage() {
                 className="w-full flex items-center gap-3 bg-surface rounded-xl px-3 py-2.5 border border-border hover:border-primary/30 hover:bg-beige-50 transition text-left"
               >
                 <PrioDot p={t.priorite} />
-                <span className="flex-1 text-sm text-stone-700 leading-snug truncate">{t.texte}</span>
+                <div className="flex-1 min-w-0">
+                  <span className="text-sm text-stone-700 leading-snug line-clamp-2">{t.texte}</span>
+                  {t.projets?.nom && (
+                    <span className="inline-block mt-0.5 text-[10px] px-1.5 py-0.5 rounded-md bg-primary/10 text-primary font-medium">
+                      {t.projets.nom}
+                    </span>
+                  )}
+                </div>
                 {t.echeance && <EcheanceTag date={t.echeance} />}
               </button>
             ))}
