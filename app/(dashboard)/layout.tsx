@@ -6,10 +6,11 @@ import Link from 'next/link'
 import { supabase } from '@/lib/supabase'
 import { UserContext } from '@/lib/user-context'
 import {
-  Home, PlusCircle, Clock, Bell, Settings, LogOut, Menu, X, Plus,
+  Home, PlusCircle, Clock, Bell, Settings, LogOut, Menu, X, Plus, Search,
   Package, Users2, Network, FolderKanban, Lightbulb, CalendarCheck,
 } from 'lucide-react'
 import { cn } from '@/lib/utils'
+import SearchModal from '@/components/SearchModal'
 
 const ADMIN_NAV = [
   { href: '/',           label: 'Focus',     icon: Home },
@@ -40,6 +41,7 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
   const [checking,    setChecking]    = useState(true)
   const [menuOpen,    setMenuOpen]    = useState(false)
   const [userEmail,   setUserEmail]   = useState<string | null>(null)
+  const [searchOpen,  setSearchOpen]  = useState(false)
   const [quickOpen,   setQuickOpen]   = useState(false)
   const [quickType,   setQuickType]   = useState<'tache' | 'idee' | null>(null)
   const [quickTexte,  setQuickTexte]  = useState('')
@@ -127,8 +129,17 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
 
       {/* Desktop sidebar */}
       <aside className="hidden md:flex fixed left-0 top-0 h-full w-56 bg-surface border-r border-border flex-col z-30">
-        <div className="p-6 border-b border-border">
+        <div className="p-4 border-b border-border space-y-3">
           <span className="text-xl font-bold text-primary">✨ Fayko</span>
+          {isAdmin && (
+            <button
+              onClick={() => setSearchOpen(true)}
+              className="w-full flex items-center gap-2 bg-beige-50 border border-border rounded-xl px-3 py-2 text-sm text-muted hover:border-primary/30 hover:text-stone-700 transition"
+            >
+              <Search size={14} />
+              Rechercher…
+            </button>
+          )}
         </div>
         <nav className="flex-1 p-3 space-y-1 overflow-y-auto">
           {navItems.map(item => <NavLink key={item.href} {...item} />)}
@@ -154,9 +165,16 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
       {/* Mobile header */}
       <header className="md:hidden fixed top-0 left-0 right-0 bg-surface border-b border-border z-30 px-4 h-14 flex items-center justify-between">
         <span className="text-lg font-bold text-primary">✨ Fayko</span>
-        <button onClick={() => setMenuOpen(!menuOpen)} className="p-1 text-muted">
-          {menuOpen ? <X size={22} /> : <Menu size={22} />}
-        </button>
+        <div className="flex items-center gap-1">
+          {isAdmin && (
+            <button onClick={() => setSearchOpen(true)} className="p-2 text-muted hover:text-stone-700 transition">
+              <Search size={20} />
+            </button>
+          )}
+          <button onClick={() => setMenuOpen(!menuOpen)} className="p-1 text-muted">
+            {menuOpen ? <X size={22} /> : <Menu size={22} />}
+          </button>
+        </div>
       </header>
 
       {/* Mobile burger menu */}
@@ -196,6 +214,9 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
           </UserContext.Provider>
         </div>
       </main>
+
+      {/* ── Recherche globale ── */}
+      {searchOpen && <SearchModal onClose={() => setSearchOpen(false)} />}
 
       {/* ── Bouton flottant capture rapide (admin seulement) ── */}
       {isAdmin && (

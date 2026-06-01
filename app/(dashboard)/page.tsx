@@ -46,6 +46,7 @@ function getISOWeek(date = new Date()): string {
 
 interface Priorite { id: string; texte: string; cochee: boolean }
 interface ProjetActif extends Projet { etapes_total: number; etapes_done: number }
+interface PipelineStats { pipeline: number; prospects: number; projets: number }
 
 export default function FocusPage() {
   const { isAdmin } = useUserContext()
@@ -57,6 +58,7 @@ export default function FocusPage() {
   const [agendaTaches,setAgendaTaches]= useState<TacheAvecProjet[]>([])
   const [autoLogs,    setAutoLogs]    = useState<AutomationLog[]>([])
   const [selectedTache, setSelectedTache] = useState<Tache | null>(null)
+  const [kpis,        setKpis]        = useState<PipelineStats | null>(null)
   const [brief,       setBrief]       = useState<{ salutation: string; actions: string[]; note: string | null } | null>(null)
   const [briefLoading,setBriefLoading]= useState(false)
   const [loading,     setLoading]     = useState(true)
@@ -84,12 +86,14 @@ export default function FocusPage() {
       { data: etapesData },
       { data: agenda },
       { data: logs },
+      { data: pipeData },
     ] = await Promise.all([
       supabase.from('daily_focus').select('*').eq('date', today).eq('fait', false).order('priorite'),
       supabase.from('priorites_hebdo').select('id, texte, cochee').eq('semaine', semaine).order('ordre'),
       supabase.from('projets').select('*').eq('statut', 'actif').order('created_at', { ascending: false }).limit(5),
       supabase.from('etapes').select('projet_id, statut'),
       supabase.from('taches').select('*, projets(id, nom)').lte('date', today).eq('faite', false),
+      supabase.from('prospects').select('montant_estime, statut').not('statut', 'in', '(client,perdu,source)'),
       supabase.from('automation_logs').select('*').order('ran_at', { ascending: false }).limit(6),
     ])
 
@@ -107,6 +111,12 @@ export default function FocusPage() {
       return 0
     })
     setAgendaTaches(sorted as TacheAvecProjet[])
+
+    // KPIs pipeline
+    if (pipeData) {
+      const pipeline = pipeData.reduce((s, p) => s + (p.montant_estime ?? 0), 0)
+      setKpis({ pipeline, prospects: pipeData.length, projets: (projetsData ?? []).length })
+    }
 
     // Projets with progress
     const etapesMap: Record<string, { total: number; done: number }> = {}
@@ -301,6 +311,29 @@ export default function FocusPage() {
         <p className="text-xs text-muted capitalize">{todayLabel}</p>
         <h1 className="text-2xl font-bold text-stone-800">Bonjour 👋</h1>
       </div>
+
+      {/* ── KPIs pipeline ── */}
+      {kpis && (
+        <div className="grid grid-cols-3 gap-2">
+          <div className="bg-surface border border-border rounded-2xl px-3 py-3 text-center">
+            <p className="text-xs text-muted mb-0.5">Pipeline</p>
+            <p className="text-base font-bold text-orange-500">
+              {kpis.pipeline >= 1000
+                ? `${(kpis.pipeline / 1000).toFixed(1)}k`
+                : `${kpis.pipeline}`}
+              <span className="text-xs font-normal ml-0.5">€</span>
+            </p>
+          </div>
+          <div className="bg-surface border border-border rounded-2xl px-3 py-3 text-center">
+            <p className="text-xs text-muted mb-0.5">Prospects</p>
+            <p className="text-base font-bold text-primary">{kpis.prospects}</p>
+          </div>
+          <div className="bg-surface border border-border rounded-2xl px-3 py-3 text-center">
+            <p className="text-xs text-muted mb-0.5">Projets</p>
+            <p className="text-base font-bold text-blue-500">{kpis.projets}</p>
+          </div>
+        </div>
+      )}
 
       {/* ── 0. Brief IA du jour ── */}
       {brief ? (

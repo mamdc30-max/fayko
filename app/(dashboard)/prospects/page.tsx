@@ -26,6 +26,39 @@ const CANAL_COLORS: Record<string, string> = {
 }
 
 const EMPTY_FORM = { prenom: '', nom: '', entreprise: '', secteur: '', canal_propose: 'linkedin', montant_estime: '', notes: '' }
+
+const MSG_TEMPLATES: { statuts: ProspectStatut[]; label: string; contenu: string }[] = [
+  {
+    statuts: ['source'],
+    label: 'Premier contact LinkedIn',
+    contenu: `Bonjour {prenom},\n\nJe suis Mame Diarra, consultante en communication pour les entrepreneurs de la diaspora africaine.\n\nJ'ai vu votre profil et je pense qu'on pourrait avoir des échanges intéressants — notamment autour de votre communication et visibilité.\n\nSeriez-vous disponible pour un échange de 20 minutes cette semaine ?`,
+  },
+  {
+    statuts: ['contacte'],
+    label: 'Relance premier contact',
+    contenu: `Bonjour {prenom},\n\nJe me permets de revenir vers vous suite à mon message.\n\nÊtes-vous disponible pour un appel découverte cette semaine ? 20 minutes suffisent pour voir si je peux vous aider.\n\nBonne journée,\nMame Diarra`,
+  },
+  {
+    statuts: ['en_discussion'],
+    label: 'Confirmation avant proposition',
+    contenu: `Bonjour {prenom},\n\nComme convenu, je prépare votre proposition.\n\nAvant de finaliser, je voulais confirmer que votre priorité principale est bien [BESOIN PRINCIPAL] — c'est bien ça ?\n\nÀ très vite,\nMame Diarra`,
+  },
+  {
+    statuts: ['proposition'],
+    label: 'Relance proposition envoyée',
+    contenu: `Bonjour {prenom},\n\nJe reviens vers vous concernant la proposition que je vous ai transmise.\n\nAvez-vous eu le temps d'en prendre connaissance ? Je suis disponible si vous avez des questions.\n\nCordialement,\nMame Diarra`,
+  },
+  {
+    statuts: ['source', 'contacte', 'en_discussion', 'proposition'],
+    label: 'Invitation à un événement',
+    contenu: `Bonjour {prenom},\n\nJe vous contacte car j'organise [NOM ÉVÉNEMENT] le [DATE], un moment d'échange entre entrepreneurs de la diaspora.\n\nCela pourrait vous intéresser — vous y seriez le/la bienvenu(e).\n\nVous pouvez vous inscrire ici : [LIEN]`,
+  },
+  {
+    statuts: ['client'],
+    label: 'Remerciement nouveau client',
+    contenu: `Bonjour {prenom},\n\nMerci beaucoup pour votre confiance — c'est un vrai plaisir de travailler avec vous !\n\nJe reviendrai vers vous très rapidement avec les premières étapes de notre collaboration.\n\nÀ très vite,\nMame Diarra`,
+  },
+]
 const EMPTY_IFORM = { type: 'rdv' as InteractionType, label: '', date: new Date().toISOString().split('T')[0], notes: '' }
 
 function isStale(p: Prospect): boolean {
@@ -53,6 +86,8 @@ export default function PipelinePage() {
   const [iform, setIform] = useState(EMPTY_IFORM)
   const [nextSteps, setNextSteps]     = useState<Record<string, string>>({})
   const [loadingStep, setLoadingStep] = useState<Record<string, boolean>>({})
+  const [templatesOpen, setTemplatesOpen] = useState(false)
+  const [copiedId,      setCopiedId]      = useState<number | null>(null)
 
   useEffect(() => { load() }, [])
 
@@ -181,10 +216,18 @@ export default function PipelinePage() {
             <h1 className="text-xl font-bold text-stone-800">Pipeline</h1>
             <p className="text-xs text-muted mt-0.5">{prospects.length} prospect{prospects.length > 1 ? 's' : ''} actifs</p>
           </div>
-          <button onClick={() => setShowAddProspect(true)}
-            className="flex items-center gap-1.5 bg-primary text-white text-sm font-semibold px-3 py-2 rounded-xl hover:bg-primary-dark transition">
-            <Plus size={15} /> Prospect
-          </button>
+          <div className="flex items-center gap-2">
+            <button
+              onClick={() => setTemplatesOpen(true)}
+              className="flex items-center gap-1.5 bg-surface border border-border text-stone-700 text-sm font-semibold px-3 py-2 rounded-xl hover:bg-beige-50 transition"
+            >
+              📝 Modèles
+            </button>
+            <button onClick={() => setShowAddProspect(true)}
+              className="flex items-center gap-1.5 bg-primary text-white text-sm font-semibold px-3 py-2 rounded-xl hover:bg-primary-dark transition">
+              <Plus size={15} /> Prospect
+            </button>
+          </div>
         </div>
         <div className="flex gap-2 overflow-x-auto pb-1 no-scrollbar">
           {ETAPES.map(e => (
@@ -480,6 +523,56 @@ export default function PipelinePage() {
               className="w-full bg-primary text-white font-bold py-3 rounded-xl disabled:opacity-40">
               Ajouter dans Source
             </button>
+          </div>
+        </div>
+      )}
+
+      {/* ── Modèles de messages ── */}
+      {templatesOpen && (
+        <div className="fixed inset-0 bg-black/40 z-50 flex items-end justify-center" onClick={() => setTemplatesOpen(false)}>
+          <div className="bg-white w-full max-w-lg rounded-t-3xl max-h-[88vh] overflow-y-auto" onClick={e => e.stopPropagation()}>
+            <div className="sticky top-0 bg-white border-b border-border px-6 py-4 flex items-center justify-between">
+              <div>
+                <h2 className="font-bold text-stone-800">📝 Modèles de messages</h2>
+                <p className="text-xs text-muted mt-0.5">Copie et adapte selon le prospect</p>
+              </div>
+              <button onClick={() => setTemplatesOpen(false)} className="text-muted hover:text-stone-700 transition">
+                <X size={20} />
+              </button>
+            </div>
+            <div className="p-4 space-y-3 pb-8">
+              {MSG_TEMPLATES.map((tpl, idx) => (
+                <div key={idx} className="border border-border rounded-2xl overflow-hidden">
+                  <div className="flex items-center justify-between px-4 py-2.5 bg-stone-50 border-b border-border">
+                    <div>
+                      <span className="text-sm font-semibold text-stone-700">{tpl.label}</span>
+                      <div className="flex gap-1 mt-0.5">
+                        {tpl.statuts.map(s => (
+                          <span key={s} className="text-[10px] px-1.5 py-0.5 bg-primary/10 text-primary rounded-md font-medium capitalize">
+                            {s.replace('_', ' ')}
+                          </span>
+                        ))}
+                      </div>
+                    </div>
+                    <button
+                      onClick={() => {
+                        navigator.clipboard.writeText(tpl.contenu)
+                        setCopiedId(idx)
+                        setTimeout(() => setCopiedId(null), 2000)
+                      }}
+                      className={`flex items-center gap-1.5 text-xs font-semibold px-3 py-1.5 rounded-xl transition ${
+                        copiedId === idx
+                          ? 'bg-green-500 text-white'
+                          : 'bg-primary/10 text-primary hover:bg-primary hover:text-white'
+                      }`}
+                    >
+                      {copiedId === idx ? <><Check size={12} /> Copié !</> : 'Copier'}
+                    </button>
+                  </div>
+                  <pre className="px-4 py-3 text-xs text-stone-600 whitespace-pre-wrap leading-relaxed font-sans">{tpl.contenu}</pre>
+                </div>
+              ))}
+            </div>
           </div>
         </div>
       )}
