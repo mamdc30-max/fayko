@@ -357,6 +357,26 @@ export default function FocusPage() {
               </div>
             ))}
           </div>
+          {/* Liens rapides */}
+          <div className="flex gap-2 flex-wrap border-t border-white/10 pt-3">
+            <a
+              href="https://calendar.google.com/calendar/r/day"
+              target="_blank"
+              rel="noopener noreferrer"
+              className="flex items-center gap-1.5 text-xs text-white/70 hover:text-white transition bg-white/10 hover:bg-white/20 px-3 py-1.5 rounded-full"
+            >
+              📅 Agenda Google
+            </a>
+            {agendaTaches.length > 0 && (
+              <a
+                href="#taches-du-jour"
+                className="flex items-center gap-1.5 text-xs text-white/70 hover:text-white transition bg-white/10 hover:bg-white/20 px-3 py-1.5 rounded-full"
+              >
+                ✅ {agendaTaches.length} tâche{agendaTaches.length > 1 ? 's' : ''} aujourd'hui
+              </a>
+            )}
+          </div>
+
           {brief.note && (
             <p className="text-white/50 text-xs leading-relaxed border-t border-white/10 pt-3 italic">
               {brief.note}
@@ -503,7 +523,7 @@ export default function FocusPage() {
 
       {/* ── 4. A faire ── */}
       {agendaTaches.length > 0 && (
-        <section className="space-y-2">
+        <section id="taches-du-jour" className="space-y-2">
           <div className="flex items-center justify-between">
             <h2 className="font-semibold text-stone-800 text-sm flex items-center gap-2">
               <CalendarDays size={15} className="text-primary" /> A faire
