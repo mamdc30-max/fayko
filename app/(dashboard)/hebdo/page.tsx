@@ -10,6 +10,14 @@ interface Priorite {
   texte: string
   cochee: boolean
   ordre: number
+  tache_id?: string | null
+}
+
+interface TacheLight {
+  id: string
+  texte: string
+  priorite: string
+  projet_nom?: string | null
 }
 
 interface Revue {
@@ -64,11 +72,31 @@ export default function HebdoPage() {
   const [priorites, setPriorites] = useState<Priorite[]>([])
   const [revue, setRevue]         = useState<Partial<Revue> & { semaine: string }>({ semaine: week })
   const [loading, setLoading]     = useState(true)
-  const [newTexte, setNewTexte]   = useState('')
+  const [newTexte,      setNewTexte]      = useState('')
+  const [selectedTache, setSelectedTache] = useState<TacheLight | null>(null)
+  const [taches,        setTaches]        = useState<TacheLight[]>([])
+  const [showSuggest,   setShowSuggest]   = useState(false)
   const [saving, setSaving]       = useState(false)
   const [showRevue, setShowRevue] = useState(false)
 
   useEffect(() => { loadWeek(week) }, [week])
+
+  useEffect(() => {
+    // Charge les tâches non faites pour les suggestions
+    supabase.from('taches')
+      .select('id, texte, priorite, projets(nom)')
+      .eq('faite', false)
+      .order('priorite')
+      .limit(50)
+      .then(({ data }) => {
+        if (data) setTaches(data.map((t: {id: string; texte: string; priorite: string; projets?: {nom: string} | null}) => ({
+          id: t.id,
+          texte: t.texte,
+          priorite: t.priorite,
+          projet_nom: (t.projets as {nom: string} | null)?.nom ?? null,
+        })))
+      })
+  }, [])
 
   async function loadWeek(w: string) {
     setLoading(true)
@@ -100,11 +128,15 @@ export default function HebdoPage() {
   async function addPriorite() {
     if (!newTexte.trim()) return
     const ordre = priorites.length
-    const { data } = await supabase.from('priorites_hebdo').insert({
+    const payload: Record<string, unknown> = {
       semaine: week, texte: newTexte.trim(), cochee: false, ordre,
-    }).select().single()
+    }
+    if (selectedTache) payload.tache_id = selectedTache.id
+    const { data } = await supabase.from('priorites_hebdo').insert(payload).select().single()
     if (data) setPriorites(prev => [...prev, data as Priorite])
     setNewTexte('')
+    setSelectedTache(null)
+    setShowSuggest(false)
   }
 
   async function togglePriorite(id: string, cochee: boolean) {
@@ -202,7 +234,12 @@ export default function HebdoPage() {
                 >
                   {p.cochee && <Check size={10} className="text-green-600" />}
                 </button>
-                <span className={`flex-1 text-sm ${p.cochee ? 'line-through text-muted' : 'text-stone-700'}`}>{p.texte}</span>
+                <div className="flex-1 min-w-0">
+                  <span className={`text-sm ${p.cochee ? 'line-through text-muted' : 'text-stone-700'}`}>{p.texte}</span>
+                  {p.tache_id && (
+                    <span className="ml-1.5 text-[10px] text-primary">🔗</span>
+                  )}
+                </div>
                 <button
                   onClick={() => deletePriorite(p.id)}
                   className="opacity-0 group-hover:opacity-100 p-1 text-muted hover:text-red-400 transition"
@@ -213,19 +250,77 @@ export default function HebdoPage() {
             ))}
 
             {/* Add inline */}
-            <div className="flex items-center gap-2 pt-1">
-              <Plus size={13} className="text-muted shrink-0" />
-              <input
-                value={newTexte}
-                onChange={e => setNewTexte(e.target.value)}
-                onKeyDown={e => e.key === 'Enter' && addPriorite()}
-                placeholder="Ajouter une priorité…"
-                className="flex-1 text-sm text-muted bg-transparent focus:outline-none placeholder:text-stone-300 py-1.5"
-              />
-              {newTexte.trim() && (
-                <button onClick={addPriorite} className="text-xs text-primary font-medium hover:underline shrink-0">
-                  Ajouter
-                </button>
+            <div className="pt-1 space-y-1">
+              {/* Tâche liée badge */}
+              {selectedTache && (
+                <div className="flex items-center gap-2 px-2 py-1.5 bg-primary/10 rounded-xl text-xs">
+                  <span className="text-primary font-medium truncate flex-1">🔗 {selectedTache.texte}</span>
+                  <button
+                    onClick={() => { setSelectedTache(null); setNewTexte('') }}
+                    className="text-muted hover:text-stone-700 shrink-0"
+                  >
+                    ✕
+                  </button>
+                </div>
+              )}
+
+              <div className="flex items-center gap-2">
+                <Plus size={13} className="text-muted shrink-0" />
+                <input
+                  value={newTexte}
+                  onChange={e => { setNewTexte(e.target.value); setShowSuggest(true) }}
+                  onFocus={() => setShowSuggest(true)}
+                  onKeyDown={e => e.key === 'Enter' && addPriorite()}
+                  placeholder={selectedTache ? 'Intitulé de la priorité…' : 'Nouvelle priorité ou choisir une tâche…'}
+                  className="flex-1 text-sm text-muted bg-transparent focus:outline-none placeholder:text-stone-300 py-1.5"
+                />
+                {newTexte.trim() && (
+                  <button onClick={addPriorite} className="text-xs text-primary font-medium hover:underline shrink-0">
+                    Ajouter
+                  </button>
+                )}
+              </div>
+
+              {/* Suggestions de tâches */}
+              {showSuggest && !selectedTache && (
+                <div className="border border-border rounded-xl bg-white shadow-sm overflow-hidden">
+                  <p className="text-[10px] font-semibold uppercase tracking-wider text-muted px-3 py-2 bg-stone-50 border-b border-border">
+                    Lier à une tâche existante
+                  </p>
+                  <div className="max-h-40 overflow-y-auto">
+                    {taches
+                      .filter(t => !newTexte.trim() || t.texte.toLowerCase().includes(newTexte.toLowerCase()))
+                      .slice(0, 8)
+                      .map(t => (
+                        <button
+                          key={t.id}
+                          onClick={() => {
+                            setSelectedTache(t)
+                            setNewTexte(t.texte)
+                            setShowSuggest(false)
+                          }}
+                          className="w-full flex items-center gap-2 px-3 py-2.5 text-left hover:bg-beige-50 transition border-b border-stone-50 last:border-0"
+                        >
+                          <span className={`w-2 h-2 rounded-full shrink-0 ${
+                            t.priorite === 'haute' ? 'bg-red-400' : t.priorite === 'basse' ? 'bg-stone-300' : 'bg-stone-400'
+                          }`} />
+                          <span className="flex-1 text-xs text-stone-700 truncate">{t.texte}</span>
+                          {t.projet_nom && (
+                            <span className="text-[10px] text-primary bg-primary/10 px-1.5 py-0.5 rounded-md shrink-0">{t.projet_nom}</span>
+                          )}
+                        </button>
+                      ))}
+                    {taches.filter(t => !newTexte.trim() || t.texte.toLowerCase().includes(newTexte.toLowerCase())).length === 0 && (
+                      <p className="px-3 py-3 text-xs text-muted">Aucune tâche correspondante</p>
+                    )}
+                  </div>
+                  <button
+                    onClick={() => setShowSuggest(false)}
+                    className="w-full text-xs text-muted py-2 border-t border-border hover:bg-stone-50 transition"
+                  >
+                    Créer sans lier
+                  </button>
+                </div>
               )}
             </div>
           </div>
