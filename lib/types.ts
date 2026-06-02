@@ -247,6 +247,19 @@ export interface AutomationLog {
   ran_at: string
 }
 
+// ---- Notes événement ----
+
+export interface NoteEvenement {
+  id: string
+  user_id?: string
+  evenement_id: string | null
+  evenement_nom: string
+  date_note: string
+  contenu: string
+  synced_notion: boolean
+  created_at: string
+}
+
 // ---- Veille hebdo ----
 
 export type VeilleCategorie = 'communication' | 'diaspora' | 'linkedin' | 'outils'
