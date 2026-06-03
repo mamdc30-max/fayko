@@ -1,12 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { createClient } from '@supabase/supabase-js'
-import webpush from 'web-push'
-
-webpush.setVapidDetails(
-  process.env.VAPID_SUBJECT!,
-  process.env.NEXT_PUBLIC_VAPID_PUBLIC_KEY!,
-  process.env.VAPID_PRIVATE_KEY!
-)
 
 const supabase = createClient(
   process.env.NEXT_PUBLIC_SUPABASE_URL!,
@@ -14,7 +7,6 @@ const supabase = createClient(
 )
 
 export async function POST(req: NextRequest) {
-  // Securite : cle secrete partagee avec le script Python
   const secret = req.headers.get('x-push-secret')
   if (secret !== process.env.PUSH_SECRET) {
     return NextResponse.json({ error: 'Non autorise' }, { status: 401 })
@@ -31,7 +23,20 @@ export async function POST(req: NextRequest) {
       return NextResponse.json({ sent: 0 })
     }
 
-    const payload = JSON.stringify({ title, body, url: url || '/missions', tag: tag || 'veille' })
+    // Import dynamique pour eviter l'execution au build
+    const webpush = await import('web-push')
+    webpush.default.setVapidDetails(
+      process.env.VAPID_SUBJECT!,
+      process.env.NEXT_PUBLIC_VAPID_PUBLIC_KEY!,
+      process.env.VAPID_PRIVATE_KEY!
+    )
+
+    const payload = JSON.stringify({
+      title,
+      body,
+      url: url || '/missions',
+      tag:  tag  || 'veille',
+    })
 
     let sent = 0
     const dead: string[] = []
@@ -39,21 +44,23 @@ export async function POST(req: NextRequest) {
     await Promise.allSettled(
       subs.map(async sub => {
         try {
-          await webpush.sendNotification(
+          await webpush.default.sendNotification(
             { endpoint: sub.endpoint, keys: { p256dh: sub.p256dh, auth: sub.auth } },
             payload
           )
           sent++
         } catch (err: unknown) {
-          // 410 Gone = subscription expir&eacute;e
-          if (err && typeof err === 'object' && 'statusCode' in err && (err as {statusCode: number}).statusCode === 410) {
+          if (
+            err && typeof err === 'object' &&
+            'statusCode' in err &&
+            (err as { statusCode: number }).statusCode === 410
+          ) {
             dead.push(sub.endpoint)
           }
         }
       })
     )
 
-    // Nettoyer les subscriptions mortes
     if (dead.length) {
       await supabase.from('push_subscriptions').delete().in('endpoint', dead)
     }
