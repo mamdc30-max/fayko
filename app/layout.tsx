@@ -1,23 +1,33 @@
 import type { Metadata, Viewport } from 'next'
 import './globals.css'
+import SwRegister from '@/components/SwRegister'
+import PushPrompt from '@/components/PushPrompt'
 
 export const metadata: Metadata = {
   title: 'Fayko',
-  description: 'Outil de devis et suivi client',
-  manifest: '/manifest.json',
+  description: 'Pilotage YaatalCo — focus, projets, prospects, missions',
+  appleWebApp: {
+    capable: true,
+    statusBarStyle: 'default',
+    title: 'Fayko',
+  },
 }
 
 export const viewport: Viewport = {
   width: 'device-width',
   initialScale: 1,
   maximumScale: 1,
-  themeColor: '#F97316',
+  themeColor: '#d97706',
 }
 
 export default function RootLayout({ children }: { children: React.ReactNode }) {
   return (
     <html lang="fr">
-      <body>{children}</body>
+      <body>
+        {children}
+        <SwRegister />
+        <PushPrompt />
+      </body>
     </html>
   )
 }

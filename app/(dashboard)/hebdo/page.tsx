@@ -105,11 +105,11 @@ export default function HebdoPage() {
       .order('priorite')
       .limit(50)
       .then(({ data }) => {
-        if (data) setTaches(data.map((t: {id: string; texte: string; priorite: string; projets?: {nom: string} | null}) => ({
+        if (data) setTaches((data as {id: string; texte: string; priorite: string; projets?: {nom: string} | {nom: string}[] | null}[]).map(t => ({
           id: t.id,
           texte: t.texte,
           priorite: t.priorite,
-          projet_nom: (t.projets as {nom: string} | null)?.nom ?? null,
+          projet_nom: Array.isArray(t.projets) ? (t.projets[0]?.nom ?? null) : ((t.projets as {nom: string} | null)?.nom ?? null),
         })))
       })
   }, [])

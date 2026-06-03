@@ -85,8 +85,8 @@ export default function FocusPage() {
       { data: projetsData },
       { data: etapesData },
       { data: agenda },
-      { data: logs },
       { data: pipeData },
+      { data: logs },
     ] = await Promise.all([
       supabase.from('daily_focus').select('*').eq('date', today).eq('fait', false).order('priorite'),
       supabase.from('priorites_hebdo').select('id, texte, cochee').eq('semaine', semaine).order('ordre'),

@@ -7,7 +7,7 @@ import { supabase } from '@/lib/supabase'
 import { UserContext } from '@/lib/user-context'
 import {
   Home, PlusCircle, Clock, Bell, Settings, LogOut, Menu, X, Plus, Search,
-  Package, Users2, Network, FolderKanban, Lightbulb, CalendarCheck,
+  Package, Users2, Network, FolderKanban, Lightbulb, CalendarCheck, Briefcase,
 } from 'lucide-react'
 import { cn } from '@/lib/utils'
 import SearchModal from '@/components/SearchModal'
@@ -24,7 +24,8 @@ const ADMIN_NAV = [
 
 // Visible dans sidebar + burger, absent de la barre mobile
 const ADMIN_EXTRA = [
-  { href: '/devis', label: 'Devis', icon: PlusCircle },
+  { href: '/missions', label: 'Missions',  icon: Briefcase },
+  { href: '/devis',    label: 'Devis',     icon: PlusCircle },
 ]
 
 const CLIENT_NAV = [
