@@ -556,7 +556,12 @@ export default function PipelinePage() {
                     </div>
                     <button
                       onClick={() => {
-                        navigator.clipboard.writeText(tpl.contenu)
+                        const actif = expandedId ? prospects.find(p => p.id === expandedId) : null
+                        const texte = tpl.contenu
+                          .replace(/\{prenom\}/g, actif?.prenom ?? 'Prénom')
+                          .replace(/\{nom\}/g,    actif?.nom    ?? 'Nom')
+                          .replace(/\{entreprise\}/g, actif?.entreprise ?? 'votre entreprise')
+                        navigator.clipboard.writeText(texte)
                         setCopiedId(idx)
                         setTimeout(() => setCopiedId(null), 2000)
                       }}

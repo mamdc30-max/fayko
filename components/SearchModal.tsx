@@ -16,9 +16,9 @@ interface SearchResult {
 const TYPE_CFG = {
   projet:   { Icon: FolderOpen,  label: 'Projets',    color: 'text-blue-500',   bg: 'bg-blue-50' },
   prospect: { Icon: Users2,      label: 'Prospects',  color: 'text-orange-500', bg: 'bg-orange-50' },
-  tache:    { Icon: CheckSquare, label: 'T&acirc;ches',     color: 'text-green-500',  bg: 'bg-green-50' },
-  idee:     { Icon: Lightbulb,   label: 'Id&eacute;es',      color: 'text-amber-500',  bg: 'bg-amber-50' },
-  reseau:   { Icon: Network,     label: 'R&eacute;seau',     color: 'text-violet-500', bg: 'bg-violet-50' },
+  tache:    { Icon: CheckSquare, label: 'Tâches',     color: 'text-green-500',  bg: 'bg-green-50' },
+  idee:     { Icon: Lightbulb,   label: 'Idées',      color: 'text-amber-500',  bg: 'bg-amber-50' },
+  reseau:   { Icon: Network,     label: 'Réseau',     color: 'text-violet-500', bg: 'bg-violet-50' },
 }
 
 const ORDER: SearchResult['type'][] = ['projet', 'prospect', 'tache', 'idee', 'reseau']
@@ -28,25 +28,37 @@ export default function SearchModal({ onClose }: { onClose: () => void }) {
   const [results,  setResults]  = useState<SearchResult[]>([])
   const [loading,  setLoading]  = useState(false)
   const [selected, setSelected] = useState(0)
-  const inputRef = useRef<HTMLInputElement>(null)
-  const router   = useRouter()
+  const inputRef  = useRef<HTMLInputElement>(null)
+  const itemRefs  = useRef<(HTMLButtonElement | null)[]>([])
+  const router    = useRouter()
 
-  // Focus input on open
   useEffect(() => { inputRef.current?.focus() }, [])
 
-  // Keyboard navigation
   useEffect(() => {
     function onKey(e: KeyboardEvent) {
       if (e.key === 'Escape')    { onClose(); return }
-      if (e.key === 'ArrowDown') { e.preventDefault(); setSelected(s => Math.min(s + 1, results.length - 1)) }
-      if (e.key === 'ArrowUp')   { e.preventDefault(); setSelected(s => Math.max(s - 1, 0)) }
+      if (e.key === 'ArrowDown') {
+        e.preventDefault()
+        setSelected(s => {
+          const next = Math.min(s + 1, results.length - 1)
+          itemRefs.current[next]?.scrollIntoView({ block: 'nearest' })
+          return next
+        })
+      }
+      if (e.key === 'ArrowUp') {
+        e.preventDefault()
+        setSelected(s => {
+          const prev = Math.max(s - 1, 0)
+          itemRefs.current[prev]?.scrollIntoView({ block: 'nearest' })
+          return prev
+        })
+      }
       if (e.key === 'Enter' && results[selected]) navigate(results[selected])
     }
     window.addEventListener('keydown', onKey)
     return () => window.removeEventListener('keydown', onKey)
   }, [results, selected])
 
-  // Debounced search
   useEffect(() => {
     setSelected(0)
     if (query.trim().length < 2) { setResults([]); return }
@@ -74,14 +86,18 @@ export default function SearchModal({ onClose }: { onClose: () => void }) {
         .or(`prenom.ilike.${like},nom.ilike.${like},entreprise.ilike.${like}`).limit(4),
     ])
 
+    // Déduplique les prospects par id
+    const seenProspects = new Set<string>()
     const mapped: SearchResult[] = [
-      ...(projets   ?? []).map(p => ({ id: p.id, label: p.nom,            sub: p.type,       type: 'projet'   as const, href: `/projets/${p.id}` })),
-      ...(prospects ?? []).map(p => ({ id: p.id, label: [p.prenom, p.nom].filter(Boolean).join(' '), sub: p.entreprise ?? p.statut, type: 'prospect' as const, href: '/prospects' })),
-      ...(taches    ?? []).map(t => ({ id: t.id, label: t.texte,           sub: t.priorite,  type: 'tache'    as const, href: '/' })),
-      ...(idees     ?? []).map(i => ({ id: i.id, label: i.texte,           sub: i.statut,    type: 'idee'     as const, href: '/idees' })),
+      ...(projets   ?? []).map(p => ({ id: p.id, label: p.nom, sub: p.type, type: 'projet' as const, href: `/projets/${p.id}` })),
+      ...(prospects ?? []).filter(p => { if (seenProspects.has(p.id)) return false; seenProspects.add(p.id); return true })
+        .map(p => ({ id: p.id, label: [p.prenom, p.nom].filter(Boolean).join(' '), sub: p.entreprise ?? p.statut, type: 'prospect' as const, href: '/prospects' })),
+      ...(taches    ?? []).map(t => ({ id: t.id, label: t.texte, sub: t.priorite, type: 'tache' as const, href: '/taches' })),
+      ...(idees     ?? []).map(i => ({ id: i.id, label: i.texte, sub: i.statut,   type: 'idee'  as const, href: '/idees' })),
       ...(reseau    ?? []).map(c => ({ id: c.id, label: [c.prenom, c.nom].filter(Boolean).join(' '), sub: c.entreprise ?? undefined, type: 'reseau' as const, href: '/reseau' })),
     ]
 
+    itemRefs.current = new Array(mapped.length).fill(null)
     setResults(mapped)
     setLoading(false)
   }
@@ -111,7 +127,7 @@ export default function SearchModal({ onClose }: { onClose: () => void }) {
             ref={inputRef}
             value={query}
             onChange={e => setQuery(e.target.value)}
-            placeholder="Rechercher un projet, prospect, t&acirc;che..."
+            placeholder="Rechercher un projet, prospect, tâche…"
             className="flex-1 text-sm text-stone-800 placeholder:text-stone-300 outline-none bg-transparent"
           />
           {query ? (
@@ -123,16 +139,16 @@ export default function SearchModal({ onClose }: { onClose: () => void }) {
           )}
         </div>
 
-        {/* R&eacute;sultats */}
+        {/* Résultats */}
         <div className="max-h-[60vh] overflow-y-auto">
 
           {loading && (
-            <div className="px-4 py-8 text-center text-sm text-muted animate-pulse">Recherche&hellip;</div>
+            <div className="px-4 py-8 text-center text-sm text-muted animate-pulse">Recherche…</div>
           )}
 
           {!loading && query.length >= 2 && results.length === 0 && (
             <div className="px-4 py-10 text-center">
-              <p className="text-sm text-muted">Aucun r&eacute;sultat pour &laquo;&nbsp;{query}&nbsp;&raquo;</p>
+              <p className="text-sm text-muted">Aucun résultat pour « {query} »</p>
             </div>
           )}
 
@@ -149,6 +165,7 @@ export default function SearchModal({ onClose }: { onClose: () => void }) {
                   return (
                     <button
                       key={r.id}
+                      ref={el => { itemRefs.current[globalIdx] = el }}
                       onClick={() => navigate(r)}
                       className={`w-full flex items-center gap-3 px-4 py-3 text-left border-b border-stone-50 transition ${
                         globalIdx === selected ? 'bg-primary-light' : 'hover:bg-beige-50'
@@ -172,7 +189,7 @@ export default function SearchModal({ onClose }: { onClose: () => void }) {
             <div className="px-4 py-10 text-center">
               <Search size={24} className="text-stone-200 mx-auto mb-3" />
               <p className="text-sm text-muted">Tape pour chercher</p>
-              <p className="text-xs text-stone-300 mt-1">Projets &middot; Prospects &middot; T&acirc;ches &middot; Id&eacute;es &middot; R&eacute;seau</p>
+              <p className="text-xs text-stone-300 mt-1">Projets · Prospects · Tâches · Idées · Réseau</p>
             </div>
           )}
         </div>

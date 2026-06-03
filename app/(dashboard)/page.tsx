@@ -79,6 +79,7 @@ export default function FocusPage() {
   async function loadAdmin() {
     const today   = new Date().toISOString().split('T')[0]
     const semaine = getISOWeek()
+    try {
 
     const [
       { data: focus },
@@ -143,6 +144,10 @@ export default function FocusPage() {
     }
 
     setLoading(false)
+    } catch (err) {
+      console.error('[Focus] Erreur chargement', err)
+      setLoading(false)
+    }
   }
 
   async function loadClient() {
@@ -584,7 +589,7 @@ export default function FocusPage() {
             }
             setSelectedTache(null)
           }}
-          onDelete={id => setAgendaTaches(prev => prev.filter(t => t.id !== id))}
+          onDelete={id => { setAgendaTaches(prev => prev.filter(t => t.id !== id)); setSelectedTache(null) }}
         />
       )}
 

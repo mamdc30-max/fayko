@@ -92,20 +92,20 @@ export default function MissionsPage() {
                 : 'bg-surface border border-border text-muted hover:text-stone-700'
             }`}
           >
-            {f === 'all' ? 'Toutes' : f === 'Urgente' ? '&#x1F525; Urgentes' : '&#x1F440; En veille'}
+            {f === 'all' ? 'Toutes' : f === 'Urgente' ? '🔥 Urgentes' : '👀 En veille'}
           </button>
         ))}
       </div>
 
       {/* Liste */}
       {loading ? (
-        <div className="text-center py-12 text-muted text-sm">Chargement&hellip;</div>
+        <div className="text-center py-12 text-muted text-sm">Chargement…</div>
       ) : filtered.length === 0 ? (
         <div className="text-center py-12 text-muted text-sm">
-          <div className="text-4xl mb-3">&#x1F50D;</div>
+          <div className="text-4xl mb-3">🔍</div>
           <p className="font-medium text-stone-700">Aucune mission pour l&apos;instant</p>
           <p className="text-xs mt-1 text-muted">
-            La veille tourne chaque matin lun&mdash;ven via les alertes email.
+            La veille tourne chaque matin lun–ven via les alertes email.
           </p>
         </div>
       ) : (
@@ -130,7 +130,7 @@ function MissionCard({ mission: m }: { mission: Mission }) {
                 ? 'bg-red-100 text-red-600'
                 : 'bg-primary/10 text-primary'
             }`}>
-              {m.priorite === 'Urgente' ? '&#x1F525; Urgente' : '&#x1F440; Veille'}
+              {m.priorite === 'Urgente' ? '🔥 Urgente' : '👀 Veille'}
             </span>
             <span className="text-[10px] text-muted">{m.source}</span>
           </div>
@@ -156,17 +156,17 @@ function MissionCard({ mission: m }: { mission: Mission }) {
       <div className="flex flex-wrap gap-1.5">
         {m.zone && (
           <span className="text-[10px] bg-beige-50 border border-border px-2 py-0.5 rounded-lg text-stone-600">
-            &#x1F4CD; {m.zone}
+            📍 {m.zone}
           </span>
         )}
-        {m.tarif && m.tarif !== '&#xC0; n&eacute;gocier' && (
+        {m.tarif && m.tarif !== 'À négocier' && (
           <span className="text-[10px] bg-beige-50 border border-border px-2 py-0.5 rounded-lg text-stone-600">
-            &#x1F4B0; {m.tarif}
+            💰 {m.tarif}
           </span>
         )}
         {m.duree && (
           <span className="text-[10px] bg-beige-50 border border-border px-2 py-0.5 rounded-lg text-stone-600">
-            &#x23F1; {m.duree}
+            ⏱ {m.duree}
           </span>
         )}
       </div>
