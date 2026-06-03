@@ -61,6 +61,7 @@ export default function FocusPage() {
   const [kpis,        setKpis]        = useState<PipelineStats | null>(null)
   const [brief,       setBrief]       = useState<{ salutation: string; actions: string[]; note: string | null } | null>(null)
   const [briefLoading,setBriefLoading]= useState(false)
+  const [retard,      setRetard]      = useState(0)
   const [loading,     setLoading]     = useState(true)
 
   // ── Client state ──
@@ -87,14 +88,16 @@ export default function FocusPage() {
       { data: agenda },
       { data: pipeData },
       { data: logs },
+      { count: retardCount },
     ] = await Promise.all([
       supabase.from('daily_focus').select('*').eq('date', today).eq('fait', false).order('priorite'),
       supabase.from('priorites_hebdo').select('id, texte, cochee').eq('semaine', semaine).order('ordre'),
       supabase.from('projets').select('*').eq('statut', 'actif').order('created_at', { ascending: false }).limit(5),
       supabase.from('etapes').select('projet_id, statut'),
-      supabase.from('taches').select('*, projets(id, nom)').lte('date', today).eq('faite', false),
+      supabase.from('taches').select('*, projets(id, nom)').eq('date', today).eq('faite', false),
       supabase.from('prospects').select('montant_estime, statut').not('statut', 'in', '(client,perdu,source)'),
       supabase.from('automation_logs').select('*').order('ran_at', { ascending: false }).limit(6),
+      supabase.from('taches').select('id', { count: 'exact', head: true }).lt('date', today).eq('faite', false),
     ])
 
     setFocusItems((focus ?? []) as DailyFocus[])
@@ -130,6 +133,8 @@ export default function FocusPage() {
       etapes_total: etapesMap[p.id]?.total ?? 0,
       etapes_done:  etapesMap[p.id]?.done  ?? 0,
     })) as ProjetActif[])
+
+    setRetard(retardCount ?? 0)
 
     // Deduplicated automation logs
     if (logs) {
@@ -522,34 +527,48 @@ export default function FocusPage() {
       )}
 
       {/* ── 4. A faire ── */}
-      {agendaTaches.length > 0 && (
+      {(agendaTaches.length > 0 || retard > 0) && (
         <section id="taches-du-jour" className="space-y-2">
           <div className="flex items-center justify-between">
             <h2 className="font-semibold text-stone-800 text-sm flex items-center gap-2">
-              <CalendarDays size={15} className="text-primary" /> A faire
+              <CalendarDays size={15} className="text-primary" /> Aujourd&apos;hui
+              {agendaTaches.length > 0 && (
+                <span className="text-xs text-muted font-normal">{agendaTaches.length} tâche{agendaTaches.length > 1 ? 's' : ''}</span>
+              )}
             </h2>
-            <span className="text-xs text-muted">{agendaTaches.length} tâche{agendaTaches.length > 1 ? 's' : ''}</span>
+            {retard > 0 && (
+              <Link href="/taches" className="flex items-center gap-1 text-xs text-red-500 font-medium bg-red-50 px-2 py-1 rounded-lg hover:bg-red-100 transition">
+                ⚠️ {retard} en retard
+              </Link>
+            )}
           </div>
-          <div className="space-y-1.5">
-            {agendaTaches.map(t => (
-              <button
-                key={t.id}
-                onClick={() => setSelectedTache(t)}
-                className="w-full flex items-center gap-3 bg-surface rounded-xl px-3 py-2.5 border border-border hover:border-primary/30 hover:bg-beige-50 transition text-left"
-              >
-                <PrioDot p={t.priorite} />
-                <div className="flex-1 min-w-0">
-                  <span className="text-sm text-stone-700 leading-snug line-clamp-2">{t.texte}</span>
-                  {t.projets?.nom && (
-                    <span className="inline-block mt-0.5 text-[10px] px-1.5 py-0.5 rounded-md bg-primary/10 text-primary font-medium">
-                      {t.projets.nom}
-                    </span>
-                  )}
-                </div>
-                {t.echeance && <EcheanceTag date={t.echeance} />}
-              </button>
-            ))}
-          </div>
+          {agendaTaches.length === 0 && retard > 0 ? (
+            <Link href="/taches" className="flex items-center justify-between bg-red-50 border border-red-100 rounded-xl px-4 py-3 hover:bg-red-100 transition">
+              <p className="text-sm text-red-700 font-medium">Aucune tâche aujourd&apos;hui — {retard} tâche{retard > 1 ? 's' : ''} en attente</p>
+              <ChevronRight size={14} className="text-red-400 shrink-0" />
+            </Link>
+          ) : (
+            <div className="space-y-1.5">
+              {agendaTaches.map(t => (
+                <button
+                  key={t.id}
+                  onClick={() => setSelectedTache(t)}
+                  className="w-full flex items-center gap-3 bg-surface rounded-xl px-3 py-2.5 border border-border hover:border-primary/30 hover:bg-beige-50 transition text-left"
+                >
+                  <PrioDot p={t.priorite} />
+                  <div className="flex-1 min-w-0">
+                    <span className="text-sm text-stone-700 leading-snug line-clamp-2">{t.texte}</span>
+                    {t.projets?.nom && (
+                      <span className="inline-block mt-0.5 text-[10px] px-1.5 py-0.5 rounded-md bg-primary/10 text-primary font-medium">
+                        {t.projets.nom}
+                      </span>
+                    )}
+                  </div>
+                  {t.echeance && <EcheanceTag date={t.echeance} />}
+                </button>
+              ))}
+            </div>
+          )}
         </section>
       )}
 
