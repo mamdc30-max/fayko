@@ -1,11 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { createClient } from '@supabase/supabase-js'
 
-const supabase = createClient(
-  process.env.NEXT_PUBLIC_SUPABASE_URL!,
-  process.env.SUPABASE_SERVICE_ROLE_KEY!
-)
-
 export async function POST(req: NextRequest) {
   const secret = req.headers.get('x-push-secret')
   if (secret !== process.env.PUSH_SECRET) {
@@ -15,6 +10,12 @@ export async function POST(req: NextRequest) {
   try {
     const { title, body, url, tag } = await req.json()
 
+    // Initialisation au moment de l'appel (pas au build)
+    const supabase = createClient(
+      process.env.NEXT_PUBLIC_SUPABASE_URL!,
+      process.env.SUPABASE_SERVICE_ROLE_KEY!
+    )
+
     const { data: subs } = await supabase
       .from('push_subscriptions')
       .select('endpoint, p256dh, auth')
@@ -23,7 +24,6 @@ export async function POST(req: NextRequest) {
       return NextResponse.json({ sent: 0 })
     }
 
-    // Import dynamique pour eviter l'execution au build
     const webpush = await import('web-push')
     webpush.default.setVapidDetails(
       process.env.VAPID_SUBJECT!,
@@ -35,7 +35,7 @@ export async function POST(req: NextRequest) {
       title,
       body,
       url: url || '/missions',
-      tag:  tag  || 'veille',
+      tag: tag  || 'veille',
     })
 
     let sent = 0
