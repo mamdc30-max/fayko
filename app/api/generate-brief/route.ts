@@ -37,7 +37,12 @@ export async function POST(req: NextRequest) {
       ? 'Aucune priorite definie cette semaine'
       : priorites.map(p => `- ${p}`).join('\n')
 
-    const prompt = `Tu es l'assistante IA de Mame Diarra, consultante en communication pour entrepreneurs de la diaspora africaine (YaatalCo).
+    const prompt = `Tu es l'assistante IA de Mame Diarra Thioune, fondatrice de YaatalCo.
+
+CONTEXTE :
+- YaatalCo = cabinet de communication strategique B2B, specialise PME techniques (bureaux d'etudes, ingenierie, industrie, ESN)
+- Client type (Marc) : dirigeant technique ~48 ans, 10-40 salaries, IDF, bon technicien mais peu a l'aise en com/commercial
+- Tunnel d'offres : Call decouverte (gratuit) > Diagnostic express (950 EUR) > Diagnostic strategique (3 500 EUR) > Mission structurante (3 000 EUR) > Pilotage mensuel (1 400 EUR/mois)
 
 Aujourd'hui : ${today}
 

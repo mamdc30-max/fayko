@@ -6,7 +6,7 @@ export async function POST(req: NextRequest) {
   try {
     const { tachesFaites, interactions, prioritesCochees, prioritesTotal, prioritesTextes, semaine } = await req.json()
 
-    const prompt = `Tu es un coach bienveillant qui aide Mame Diarra Thioune (consultante YaatalCo) a faire sa revue de semaine.
+    const prompt = `Tu es un coach bienveillant qui aide Mame Diarra Thioune (YaatalCo — communication strategique B2B pour PME techniques : bureaux d'etudes, ingenierie, industrie, ESN) a faire sa revue de semaine.
 
 Semaine : ${semaine}
 Taches accomplies : ${tachesFaites} tache${tachesFaites !== 1 ? 's' : ''}
