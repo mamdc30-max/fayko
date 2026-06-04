@@ -47,11 +47,13 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
   const [menuOpen,    setMenuOpen]    = useState(false)
   const [userEmail,   setUserEmail]   = useState<string | null>(null)
   const [searchOpen,  setSearchOpen]  = useState(false)
-  const [quickOpen,   setQuickOpen]   = useState(false)
-  const [quickType,   setQuickType]   = useState<'tache' | 'idee' | null>(null)
-  const [quickTexte,  setQuickTexte]  = useState('')
-  const [quickPrio,   setQuickPrio]   = useState<'haute' | 'normale' | 'basse'>('normale')
-  const [quickSaving, setQuickSaving] = useState(false)
+  const [quickOpen,     setQuickOpen]     = useState(false)
+  const [quickType,     setQuickType]     = useState<'tache' | 'idee' | null>(null)
+  const [quickTexte,    setQuickTexte]    = useState('')
+  const [quickPrio,     setQuickPrio]     = useState<'haute' | 'normale' | 'basse'>('normale')
+  const [quickProjetId, setQuickProjetId] = useState('')
+  const [quickProjets,  setQuickProjets]  = useState<{ id: string; nom: string }[]>([])
+  const [quickSaving,   setQuickSaving]   = useState(false)
 
   const adminEmail = process.env.NEXT_PUBLIC_ADMIN_EMAIL
   const isAdmin    = !adminEmail || userEmail === adminEmail
@@ -76,7 +78,11 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
     setQuickType(null)
     setQuickTexte('')
     setQuickPrio('normale')
+    setQuickProjetId('')
     setQuickOpen(true)
+    // Charge les projets actifs pour le sélecteur
+    supabase.from('projets').select('id, nom').in('statut', ['actif', 'en_pause']).order('nom')
+      .then(({ data }) => setQuickProjets(data ?? []))
   }
 
   async function saveQuickTache() {
@@ -85,7 +91,8 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
     const today = new Date().toISOString().split('T')[0]
     await supabase.from('taches').insert({
       texte: quickTexte.trim(), faite: false, date: today,
-      priorite: quickPrio, source: 'manuel', projet_id: null, etape_id: null,
+      priorite: quickPrio, source: 'manuel',
+      projet_id: quickProjetId || null, etape_id: null,
     })
     setQuickOpen(false)
     setQuickSaving(false)
@@ -283,22 +290,36 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
                     />
 
                     {quickType === 'tache' && (
-                      <div className="flex gap-2">
-                        {(['haute', 'normale', 'basse'] as const).map(p => (
-                          <button
-                            key={p}
-                            onClick={() => setQuickPrio(p)}
-                            className={`flex-1 py-2 rounded-xl text-xs font-bold border transition ${
-                              quickPrio === p
-                                ? p === 'haute'   ? 'bg-red-500 text-white border-red-500'
-                                : p === 'normale' ? 'bg-stone-600 text-white border-stone-600'
-                                :                   'bg-stone-200 text-stone-600 border-stone-200'
-                                : 'border-border text-muted hover:border-stone-300'
-                            }`}
+                      <div className="space-y-2">
+                        <div className="flex gap-2">
+                          {(['haute', 'normale', 'basse'] as const).map(p => (
+                            <button
+                              key={p}
+                              onClick={() => setQuickPrio(p)}
+                              className={`flex-1 py-2 rounded-xl text-xs font-bold border transition ${
+                                quickPrio === p
+                                  ? p === 'haute'   ? 'bg-red-500 text-white border-red-500'
+                                  : p === 'normale' ? 'bg-stone-600 text-white border-stone-600'
+                                  :                   'bg-stone-200 text-stone-600 border-stone-200'
+                                  : 'border-border text-muted hover:border-stone-300'
+                              }`}
+                            >
+                              {p === 'haute' ? 'Haute' : p === 'normale' ? 'Normale' : 'Basse'}
+                            </button>
+                          ))}
+                        </div>
+                        {quickProjets.length > 0 && (
+                          <select
+                            value={quickProjetId}
+                            onChange={e => setQuickProjetId(e.target.value)}
+                            className="w-full border border-border rounded-xl px-3 py-2.5 text-sm text-stone-700 bg-beige-50 focus:outline-none focus:ring-2 focus:ring-primary/30"
                           >
-                            {p === 'haute' ? 'Haute' : p === 'normale' ? 'Normale' : 'Basse'}
-                          </button>
-                        ))}
+                            <option value="">— Aucun projet</option>
+                            {quickProjets.map(p => (
+                              <option key={p.id} value={p.id}>{p.nom}</option>
+                            ))}
+                          </select>
+                        )}
                       </div>
                     )}
 
