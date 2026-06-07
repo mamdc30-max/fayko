@@ -63,6 +63,8 @@ export default function FocusPage() {
   const [briefLoading,setBriefLoading]= useState(false)
   const [retard,      setRetard]      = useState(0)
   const [loading,     setLoading]     = useState(true)
+  const [newPrioTexte, setNewPrioTexte] = useState('')
+  const [prioSaving,   setPrioSaving]   = useState(false)
 
   // ── Client state ──
   const [relances,     setRelances]      = useState<DevisWithClient[]>([])
@@ -211,6 +213,23 @@ export default function FocusPage() {
     setPriorites(prev => prev.map(p => p.id === id ? { ...p, cochee } : p))
   }
 
+  async function addPrioriteFromFocus() {
+    if (!newPrioTexte.trim()) return
+    setPrioSaving(true)
+    const semaine = getISOWeek()
+    const { data } = await supabase.from('priorites_hebdo').insert({
+      semaine, texte: newPrioTexte.trim(), cochee: false, ordre: priorites.length,
+    }).select('id, texte, cochee').single()
+    if (data) setPriorites(prev => [...prev, data as Priorite])
+    setNewPrioTexte('')
+    setPrioSaving(false)
+  }
+
+  async function deletePrioriteFromFocus(id: string) {
+    await supabase.from('priorites_hebdo').delete().eq('id', id)
+    setPriorites(prev => prev.filter(p => p.id !== id))
+  }
+
   if (loading) return <div className="text-muted text-sm pt-8 text-center">Chargement…</div>
 
   /* ═══════════════════════════════════════════
@@ -347,7 +366,7 @@ export default function FocusPage() {
 
       {/* ── 0. Brief IA du jour ── */}
       {brief ? (
-        <section className="bg-stone-900 rounded-2xl p-5 space-y-4">
+        <section className="bg-navy-deep rounded-2xl p-5 space-y-4">
           <div className="flex items-start justify-between gap-3">
             <p className="text-white/90 text-sm leading-relaxed font-medium flex-1">{brief.salutation}</p>
             <button
@@ -404,7 +423,7 @@ export default function FocusPage() {
         <button
           onClick={generateBrief}
           disabled={briefLoading}
-          className="w-full flex items-center justify-center gap-2 bg-stone-800 hover:bg-stone-700 text-white text-sm font-semibold py-3.5 rounded-2xl transition disabled:opacity-50"
+          className="w-full flex items-center justify-center gap-2 bg-navy hover:bg-navy-deep text-white text-sm font-semibold py-3.5 rounded-2xl transition disabled:opacity-50"
         >
           {briefLoading
             ? <><span className="animate-pulse">⏳</span> Analyse en cours...</>
@@ -415,7 +434,7 @@ export default function FocusPage() {
 
       {/* ── 1. Focus du jour (CRM scan) ── */}
       {focusItems.length > 0 && (
-        <section className="bg-stone-900 rounded-2xl p-4 space-y-3">
+        <section className="bg-navy-deep rounded-2xl p-4 space-y-3">
           <div className="flex items-center justify-between">
             <h2 className="font-bold text-white text-sm">
               ⭐ Focus du jour
@@ -452,50 +471,66 @@ export default function FocusPage() {
       )}
 
 
-      {/* ── 2. Priorités de la semaine ── */}
-      {priorites.length > 0 && (
-        <section className="bg-surface border border-border rounded-2xl p-4 space-y-3">
-          <div className="flex items-center justify-between">
-            <h2 className="font-semibold text-stone-800 text-sm">📋 Priorités de la semaine</h2>
-            <div className="flex items-center gap-2">
-              <div className="w-16 h-1.5 bg-stone-100 rounded-full overflow-hidden">
-                <div
-                  className={`h-full rounded-full transition-all ${cochees === priorites.length ? 'bg-green-400' : 'bg-primary'}`}
-                  style={{ width: `${priorites.length ? Math.round((cochees / priorites.length) * 100) : 0}%` }}
-                />
-              </div>
-              <span className="text-xs text-muted">{cochees}/{priorites.length}</span>
+      {/* ── 2. Focus de la semaine ── */}
+      <section className="bg-surface border border-border rounded-2xl overflow-hidden">
+        <div className="flex items-center justify-between px-4 py-3 border-b border-border">
+          <h2 className="font-semibold text-stone-800 text-sm">📋 Focus de la semaine</h2>
+          {priorites.length > 0 && (
+            <span className="text-xs text-muted">{cochees}/{priorites.length}</span>
+          )}
+        </div>
+        <div className="p-3 space-y-0.5">
+          {priorites.map(p => (
+            <div
+              key={p.id}
+              className={`flex items-center gap-3 py-2 px-2 rounded-xl hover:bg-beige-50 transition group ${p.cochee ? 'opacity-50' : ''}`}
+            >
+              <button
+                onClick={() => togglePriorite(p.id, !p.cochee)}
+                className={`w-4 h-4 rounded border-2 flex items-center justify-center shrink-0 transition ${p.cochee ? 'border-green-400 bg-green-50' : 'border-border hover:border-primary'}`}
+              >
+                {p.cochee && <Check size={9} className="text-green-600" />}
+              </button>
+              <span className={`text-sm flex-1 ${p.cochee ? 'line-through text-muted' : 'text-stone-700'}`}>{p.texte}</span>
+              <button
+                onClick={() => deletePrioriteFromFocus(p.id)}
+                className="opacity-0 group-hover:opacity-100 p-1 text-muted hover:text-red-400 transition shrink-0"
+              >
+                <Trash2 size={12} />
+              </button>
+            </div>
+          ))}
+          <div className="flex items-center gap-2 pt-1">
+            <Plus size={13} className="text-stone-300 shrink-0" />
+            <input
+              value={newPrioTexte}
+              onChange={e => setNewPrioTexte(e.target.value)}
+              onKeyDown={e => e.key === 'Enter' && addPrioriteFromFocus()}
+              placeholder={priorites.length === 0 ? 'Quelle est ta priorité principale cette semaine ?' : 'Ajouter une priorité…'}
+              className="flex-1 text-sm text-stone-700 bg-transparent focus:outline-none placeholder:text-stone-300 py-1.5"
+            />
+            {newPrioTexte.trim() && (
+              <button
+                onClick={addPrioriteFromFocus}
+                disabled={prioSaving}
+                className="text-xs text-primary font-medium hover:underline shrink-0 disabled:opacity-40"
+              >
+                {prioSaving ? '…' : 'Ajouter'}
+              </button>
+            )}
+          </div>
+        </div>
+        {priorites.length > 0 && (
+          <div className="px-4 pb-3">
+            <div className="h-1 bg-stone-100 rounded-full overflow-hidden">
+              <div
+                className={`h-full rounded-full transition-all ${cochees === priorites.length ? 'bg-green-400' : 'bg-primary'}`}
+                style={{ width: `${priorites.length ? Math.round((cochees / priorites.length) * 100) : 0}%` }}
+              />
             </div>
           </div>
-          <div className="space-y-0.5">
-            {priorites.map(p => (
-              <button
-                key={p.id}
-                onClick={() => togglePriorite(p.id, !p.cochee)}
-                className={`flex items-center gap-3 w-full py-2 px-2 rounded-xl hover:bg-beige-50 transition text-left ${p.cochee ? 'opacity-50' : ''}`}
-              >
-                <div className={`w-4 h-4 rounded border-2 flex items-center justify-center shrink-0 transition ${p.cochee ? 'border-green-400 bg-green-50' : 'border-border'}`}>
-                  {p.cochee && <Check size={9} className="text-green-600" />}
-                </div>
-                <span className={`text-sm ${p.cochee ? 'line-through text-muted' : 'text-stone-700'}`}>{p.texte}</span>
-              </button>
-            ))}
-          </div>
-          <Link href="/hebdo" className="flex items-center gap-1 text-xs text-primary font-medium hover:underline">
-            Gérer les priorités <ChevronRight size={12} />
-          </Link>
-        </section>
-      )}
-
-      {priorites.length === 0 && (
-        <Link href="/hebdo" className="flex items-center justify-between bg-surface border border-dashed border-border rounded-2xl px-4 py-4 hover:border-primary/30 transition">
-          <div>
-            <p className="text-sm font-medium text-stone-700">Pas encore de priorités cette semaine</p>
-            <p className="text-xs text-muted mt-0.5">Définis tes 3–5 priorités pour avancer avec méthode</p>
-          </div>
-          <ChevronRight size={16} className="text-muted shrink-0" />
-        </Link>
-      )}
+        )}
+      </section>
 
       {/* ── 3. Projets actifs ── */}
       {projets.length > 0 && (

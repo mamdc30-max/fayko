@@ -2,7 +2,7 @@
 
 import { useState, useEffect } from 'react'
 import { supabase } from '@/lib/supabase'
-import { Plus, Check, Trash2, ChevronDown, ChevronUp } from 'lucide-react'
+// no lucide icons needed
 
 interface Priorite {
   id: string
@@ -11,13 +11,6 @@ interface Priorite {
   cochee: boolean
   ordre: number
   tache_id?: string | null
-}
-
-interface TacheLight {
-  id: string
-  texte: string
-  priorite: string
-  projet_nom?: string | null
 }
 
 interface WeekStats {
@@ -77,42 +70,18 @@ const EMPTY_REVUE: Omit<Revue, 'id' | 'semaine'> = {
   ajustements_semaine_suivante: null,
 }
 
-type Tab = 'priorites' | 'revue'
-
 export default function HebdoPage() {
   const currentWeek = getISOWeek()
   const [week, setWeek]           = useState(currentWeek)
-  const [tab, setTab]             = useState<Tab>('priorites')
   const [priorites, setPriorites] = useState<Priorite[]>([])
   const [revue, setRevue]         = useState<Partial<Revue> & { semaine: string }>({ semaine: week })
   const [loading, setLoading]     = useState(true)
-  const [newTexte,      setNewTexte]      = useState('')
-  const [selectedTache, setSelectedTache] = useState<TacheLight | null>(null)
-  const [taches,        setTaches]        = useState<TacheLight[]>([])
-  const [showSuggest,   setShowSuggest]   = useState(false)
   const [weekStats,     setWeekStats]     = useState<WeekStats | null>(null)
   const [revueLoading,  setRevueLoading]  = useState(false)
   const [saving, setSaving]       = useState(false)
   const [showRevue, setShowRevue] = useState(false)
 
   useEffect(() => { loadWeek(week) }, [week])
-
-  useEffect(() => {
-    // Charge les tâches non faites pour les suggestions
-    supabase.from('taches')
-      .select('id, texte, priorite, projets(nom)')
-      .eq('faite', false)
-      .order('priorite')
-      .limit(50)
-      .then(({ data }) => {
-        if (data) setTaches((data as {id: string; texte: string; priorite: string; projets?: {nom: string} | {nom: string}[] | null}[]).map(t => ({
-          id: t.id,
-          texte: t.texte,
-          priorite: t.priorite,
-          projet_nom: Array.isArray(t.projets) ? (t.projets[0]?.nom ?? null) : ((t.projets as {nom: string} | null)?.nom ?? null),
-        })))
-      })
-  }, [])
 
   async function loadWeek(w: string) {
     setLoading(true)
@@ -143,32 +112,6 @@ export default function HebdoPage() {
     const w = parseInt(wStr)
     if (w === 52) setWeek(`${parseInt(year) + 1}-W01`)
     else setWeek(`${year}-W${String(w + 1).padStart(2, '0')}`)
-  }
-
-  /* ── Priorités ── */
-
-  async function addPriorite() {
-    if (!newTexte.trim()) return
-    const ordre = priorites.length
-    const payload: Record<string, unknown> = {
-      semaine: week, texte: newTexte.trim(), cochee: false, ordre,
-    }
-    if (selectedTache) payload.tache_id = selectedTache.id
-    const { data } = await supabase.from('priorites_hebdo').insert(payload).select().single()
-    if (data) setPriorites(prev => [...prev, data as Priorite])
-    setNewTexte('')
-    setSelectedTache(null)
-    setShowSuggest(false)
-  }
-
-  async function togglePriorite(id: string, cochee: boolean) {
-    await supabase.from('priorites_hebdo').update({ cochee }).eq('id', id)
-    setPriorites(prev => prev.map(p => p.id === id ? { ...p, cochee } : p))
-  }
-
-  async function deletePriorite(id: string) {
-    await supabase.from('priorites_hebdo').delete().eq('id', id)
-    setPriorites(prev => prev.filter(p => p.id !== id))
   }
 
   /* ── Revue ── */
@@ -234,7 +177,7 @@ export default function HebdoPage() {
 
       {/* Header */}
       <div>
-        <h1 className="text-xl font-bold text-stone-800">Semaine</h1>
+        <h1 className="text-xl font-bold text-stone-800">Revue de la semaine</h1>
         <div className="flex items-center gap-3 mt-2">
           <button onClick={prevWeek} className="text-muted hover:text-stone-700 transition p-1">‹</button>
           <div className="flex-1 text-center">
@@ -245,218 +188,76 @@ export default function HebdoPage() {
         </div>
       </div>
 
-      {/* Tabs */}
-      <div className="flex gap-1 bg-surface border border-border rounded-xl p-1">
-        {([['priorites', 'Priorités'], ['revue', 'Revue']] as [Tab, string][]).map(([t, l]) => (
-          <button
-            key={t}
-            onClick={() => setTab(t)}
-            className={`flex-1 text-xs py-2 rounded-lg font-medium transition ${
-              tab === t ? 'bg-primary text-white' : 'text-muted hover:text-stone-700'
-            }`}
-          >
-            {l}
-          </button>
-        ))}
-      </div>
+      {/* ── Revue de la semaine ── */}
+      <div className="space-y-4">
 
-      {/* ── Priorités ── */}
-      {tab === 'priorites' && (
-        <div className="space-y-3">
-          {priorites.length > 0 && (
-            <div className="flex items-center gap-2 text-xs text-muted">
-              <div className="flex-1 h-1.5 bg-stone-100 rounded-full overflow-hidden">
-                <div
-                  className={`h-full rounded-full transition-all ${coched === priorites.length ? 'bg-green-400' : 'bg-primary'}`}
-                  style={{ width: priorites.length > 0 ? `${Math.round((coched / priorites.length) * 100)}%` : '0%' }}
-                />
-              </div>
-              <span className="shrink-0">{coched}/{priorites.length}</span>
+        {/* Stats */}
+        {weekStats && (
+          <div className="grid grid-cols-3 gap-2">
+            <div className="bg-green-50 border border-green-100 rounded-2xl p-3 text-center">
+              <p className="text-xl font-bold text-green-600">{weekStats.tachesFaites}</p>
+              <p className="text-[10px] text-green-700 mt-0.5">tâche{weekStats.tachesFaites !== 1 ? 's' : ''} faite{weekStats.tachesFaites !== 1 ? 's' : ''}</p>
             </div>
-          )}
-
-          <div className="bg-surface border border-border rounded-2xl p-3 space-y-0.5">
-            {priorites.map(p => (
-              <div key={p.id} className={`flex items-center gap-3 py-2.5 px-2 rounded-xl group hover:bg-beige-50 transition ${p.cochee ? 'opacity-50' : ''}`}>
-                <button
-                  onClick={() => togglePriorite(p.id, !p.cochee)}
-                  className={`w-5 h-5 rounded border-2 flex items-center justify-center shrink-0 transition ${
-                    p.cochee ? 'border-green-400 bg-green-50' : 'border-border hover:border-primary'
-                  }`}
-                >
-                  {p.cochee && <Check size={10} className="text-green-600" />}
-                </button>
-                <div className="flex-1 min-w-0">
-                  <span className={`text-sm ${p.cochee ? 'line-through text-muted' : 'text-stone-700'}`}>{p.texte}</span>
-                  {p.tache_id && (
-                    <span className="ml-1.5 text-[10px] text-primary">🔗</span>
-                  )}
-                </div>
-                <button
-                  onClick={() => deletePriorite(p.id)}
-                  className="opacity-0 group-hover:opacity-100 p-1 text-muted hover:text-red-400 transition"
-                >
-                  <Trash2 size={12} />
-                </button>
-              </div>
-            ))}
-
-            {/* Add inline */}
-            <div className="pt-1 space-y-1">
-              {/* Tâche liée badge */}
-              {selectedTache && (
-                <div className="flex items-center gap-2 px-2 py-1.5 bg-primary/10 rounded-xl text-xs">
-                  <span className="text-primary font-medium truncate flex-1">🔗 {selectedTache.texte}</span>
-                  <button
-                    onClick={() => { setSelectedTache(null); setNewTexte('') }}
-                    className="text-muted hover:text-stone-700 shrink-0"
-                  >
-                    ✕
-                  </button>
-                </div>
-              )}
-
-              <div className="flex items-center gap-2">
-                <Plus size={13} className="text-muted shrink-0" />
-                <input
-                  value={newTexte}
-                  onChange={e => { setNewTexte(e.target.value); setShowSuggest(true) }}
-                  onFocus={() => setShowSuggest(true)}
-                  onKeyDown={e => e.key === 'Enter' && addPriorite()}
-                  placeholder={selectedTache ? 'Intitulé de la priorité…' : 'Nouvelle priorité ou choisir une tâche…'}
-                  className="flex-1 text-sm text-muted bg-transparent focus:outline-none placeholder:text-stone-300 py-1.5"
-                />
-                {newTexte.trim() && (
-                  <button onClick={addPriorite} className="text-xs text-primary font-medium hover:underline shrink-0">
-                    Ajouter
-                  </button>
-                )}
-              </div>
-
-              {/* Suggestions de tâches */}
-              {showSuggest && !selectedTache && (
-                <div className="border border-border rounded-xl bg-white shadow-sm overflow-hidden">
-                  <p className="text-[10px] font-semibold uppercase tracking-wider text-muted px-3 py-2 bg-stone-50 border-b border-border">
-                    Lier à une tâche existante
-                  </p>
-                  <div className="max-h-40 overflow-y-auto">
-                    {taches
-                      .filter(t => !newTexte.trim() || t.texte.toLowerCase().includes(newTexte.toLowerCase()))
-                      .slice(0, 8)
-                      .map(t => (
-                        <button
-                          key={t.id}
-                          onClick={() => {
-                            setSelectedTache(t)
-                            setNewTexte(t.texte)
-                            setShowSuggest(false)
-                          }}
-                          className="w-full flex items-center gap-2 px-3 py-2.5 text-left hover:bg-beige-50 transition border-b border-stone-50 last:border-0"
-                        >
-                          <span className={`w-2 h-2 rounded-full shrink-0 ${
-                            t.priorite === 'haute' ? 'bg-red-400' : t.priorite === 'basse' ? 'bg-stone-300' : 'bg-stone-400'
-                          }`} />
-                          <span className="flex-1 text-xs text-stone-700 truncate">{t.texte}</span>
-                          {t.projet_nom && (
-                            <span className="text-[10px] text-primary bg-primary/10 px-1.5 py-0.5 rounded-md shrink-0">{t.projet_nom}</span>
-                          )}
-                        </button>
-                      ))}
-                    {taches.filter(t => !newTexte.trim() || t.texte.toLowerCase().includes(newTexte.toLowerCase())).length === 0 && (
-                      <p className="px-3 py-3 text-xs text-muted">Aucune tâche correspondante</p>
-                    )}
-                  </div>
-                  <button
-                    onClick={() => setShowSuggest(false)}
-                    className="w-full text-xs text-muted py-2 border-t border-border hover:bg-stone-50 transition"
-                  >
-                    Créer sans lier
-                  </button>
-                </div>
-              )}
+            <div className="bg-blue-50 border border-blue-100 rounded-2xl p-3 text-center">
+              <p className="text-xl font-bold text-blue-600">{weekStats.interactions}</p>
+              <p className="text-[10px] text-blue-700 mt-0.5">interaction{weekStats.interactions !== 1 ? 's' : ''}</p>
+            </div>
+            <div className={`rounded-2xl p-3 text-center border ${
+              coched === priorites.length && priorites.length > 0
+                ? 'bg-amber-50 border-amber-100'
+                : 'bg-surface border-border'
+            }`}>
+              <p className={`text-xl font-bold ${coched === priorites.length && priorites.length > 0 ? 'text-amber-500' : 'text-primary'}`}>
+                {coched}/{priorites.length}
+              </p>
+              <p className="text-[10px] text-muted mt-0.5">priorités</p>
             </div>
           </div>
+        )}
 
-          {priorites.length === 0 && !newTexte && (
-            <p className="text-xs text-muted text-center py-2">
-              Définis 3 à 5 priorités pour cette semaine
-            </p>
-          )}
-        </div>
-      )}
+        {/* Bouton IA */}
+        <button
+          onClick={generateRevue}
+          disabled={revueLoading}
+          className="w-full flex items-center justify-center gap-2 bg-navy hover:bg-navy-deep text-white text-sm font-semibold py-3.5 rounded-2xl transition disabled:opacity-50"
+        >
+          {revueLoading
+            ? <><span className="animate-pulse">⏳</span> Analyse en cours...</>
+            : <>✨ Générer ma revue de la semaine</>
+          }
+        </button>
 
-      {/* ── Revue ── */}
-      {tab === 'revue' && (
-        <div className="space-y-4">
-
-          {/* Stats de la semaine */}
-          {weekStats && (
-            <div className="grid grid-cols-3 gap-2">
-              <div className="bg-green-50 border border-green-100 rounded-2xl p-3 text-center">
-                <p className="text-xl font-bold text-green-600">{weekStats.tachesFaites}</p>
-                <p className="text-[10px] text-green-700 mt-0.5">tâche{weekStats.tachesFaites !== 1 ? 's' : ''} faite{weekStats.tachesFaites !== 1 ? 's' : ''}</p>
-              </div>
-              <div className="bg-blue-50 border border-blue-100 rounded-2xl p-3 text-center">
-                <p className="text-xl font-bold text-blue-600">{weekStats.interactions}</p>
-                <p className="text-[10px] text-blue-700 mt-0.5">interaction{weekStats.interactions !== 1 ? 's' : ''}</p>
-              </div>
-              <div className={`rounded-2xl p-3 text-center border ${
-                coched === priorites.length && priorites.length > 0
-                  ? 'bg-amber-50 border-amber-100'
-                  : 'bg-surface border-border'
-              }`}>
-                <p className={`text-xl font-bold ${coched === priorites.length && priorites.length > 0 ? 'text-amber-500' : 'text-primary'}`}>
-                  {coched}/{priorites.length}
-                </p>
-                <p className="text-[10px] text-muted mt-0.5">priorités</p>
-              </div>
+        {/* Questions */}
+        {([
+          ['ce_qui_a_marche',              '✅ Ce qui a bien marché',                 'Qu\'est-ce qui t\'a rendu fière cette semaine ?'],
+          ['ce_qui_na_pas_avance',         '⚠️ Ce qui n\'a pas avancé',               'Qu\'est-ce qui a bloqué ou pris plus de temps que prévu ?'],
+          ['apprentissages',               '💡 Apprentissage clé',                    'Qu\'est-ce que tu retiens de cette semaine ?'],
+          ['celebration',                  '🎉 Célébration',                          'Petite ou grande, quelle victoire mérite d\'être célébrée ?'],
+          ['ajustements_semaine_suivante', '🔄 Ajustement pour la semaine prochaine', 'Une chose concrète à faire différemment'],
+        ] as [keyof Revue, string, string][]).map(([field, label, placeholder]) => (
+          <div key={field} className="bg-surface border border-border rounded-2xl overflow-hidden">
+            <div className="px-4 py-2.5 bg-stone-50 border-b border-border">
+              <p className="text-xs font-bold text-stone-700">{label}</p>
             </div>
-          )}
+            <textarea
+              value={(revue[field] as string) ?? ''}
+              onChange={e => setRevue(r => ({ ...r, [field]: e.target.value || null }))}
+              onBlur={saveRevue}
+              rows={3}
+              placeholder={placeholder}
+              className="w-full text-sm px-4 py-3 focus:outline-none bg-transparent placeholder:text-stone-300 resize-none leading-relaxed"
+            />
+          </div>
+        ))}
 
-          {/* Bouton IA */}
-          <button
-            onClick={generateRevue}
-            disabled={revueLoading}
-            className="w-full flex items-center justify-center gap-2 bg-stone-800 hover:bg-stone-700 text-white text-sm font-semibold py-3.5 rounded-2xl transition disabled:opacity-50"
-          >
-            {revueLoading
-              ? <><span className="animate-pulse">⏳</span> Analyse en cours...</>
-              : <>✨ Générer ma revue de la semaine</>
-            }
-          </button>
-
-          {/* Questions */}
-          {([
-            ['ce_qui_a_marche',              '✅ Ce qui a bien marché',                   'Qu\'est-ce qui t\'a rendu fière cette semaine ?'],
-            ['ce_qui_na_pas_avance',         '⚠️ Ce qui n\'a pas avancé',                 'Qu\'est-ce qui a bloqué ou pris plus de temps que prévu ?'],
-            ['apprentissages',               '💡 Apprentissage clé',                      'Qu\'est-ce que tu retiens de cette semaine ?'],
-            ['celebration',                  '🎉 Célébration',                            'Petite ou grande, quelle victoire mérite d\'être célébrée ?'],
-            ['ajustements_semaine_suivante', '🔄 Ajustement pour la semaine prochaine',   'Une chose concrète à faire différemment'],
-          ] as [keyof Revue, string, string][]).map(([field, label, placeholder]) => (
-            <div key={field} className="bg-surface border border-border rounded-2xl overflow-hidden">
-              <div className="px-4 py-2.5 bg-stone-50 border-b border-border">
-                <p className="text-xs font-bold text-stone-700">{label}</p>
-              </div>
-              <textarea
-                value={(revue[field] as string) ?? ''}
-                onChange={e => setRevue(r => ({ ...r, [field]: e.target.value || null }))}
-                onBlur={saveRevue}
-                rows={3}
-                placeholder={placeholder}
-                className="w-full text-sm px-4 py-3 focus:outline-none bg-transparent placeholder:text-stone-300 resize-none leading-relaxed"
-              />
-            </div>
-          ))}
-
-          <button
-            onClick={saveRevue}
-            disabled={saving}
-            className="w-full bg-primary text-white text-sm font-medium py-3 rounded-xl hover:bg-primary-dark disabled:opacity-40 transition"
-          >
-            {saving ? 'Sauvegarde…' : '💾 Sauvegarder la revue'}
-          </button>
-        </div>
-      )}
+        <button
+          onClick={saveRevue}
+          disabled={saving}
+          className="w-full bg-primary text-white text-sm font-medium py-3 rounded-xl hover:bg-primary-dark disabled:opacity-40 transition"
+        >
+          {saving ? 'Sauvegarde…' : '💾 Sauvegarder la revue'}
+        </button>
+      </div>
     </div>
   )
 }

@@ -8,7 +8,7 @@ import { UserContext } from '@/lib/user-context'
 import {
   Home, PlusCircle, Clock, Bell, Settings, LogOut, Menu, X, Plus, Search,
   Package, Users2, Network, FolderKanban, Lightbulb, CalendarCheck, Briefcase,
-  CheckSquare, CalendarDays, Rss,
+  CheckSquare, CalendarDays, Rss, ExternalLink,
 } from 'lucide-react'
 import { cn } from '@/lib/utils'
 import SearchModal from '@/components/SearchModal'
@@ -32,6 +32,13 @@ const ADMIN_EXTRA = [
   { href: '/devis',       label: 'Devis',               icon: PlusCircle },
 ]
 
+// Liens rapides Notion — ajouter les URLs au fur et à mesure
+const NOTION_LINKS = [
+  { label: '🏠 Hub YaatalCo',       url: 'https://app.notion.com/p/YaatalCo-34233578e13f81b5baa8d76ac6ff4c13' },
+  { label: '📋 Pipeline outbound',   url: 'https://app.notion.com/p/Pipeline-outbound-35033578e13f81e5b873c05eb8cd7ac9' },
+  { label: '📚 Fondations YaatalCo', url: 'https://app.notion.com/p/Fondations-Yaatal-Co-34233578e13f811f8fcff9d983803e71' },
+].filter(l => l.url.length > 0)
+
 const CLIENT_NAV = [
   { href: '/',           label: 'Accueil',   icon: Home },
   { href: '/devis',      label: 'Créer',     icon: PlusCircle },
@@ -54,6 +61,7 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
   const [quickProjetId, setQuickProjetId] = useState('')
   const [quickProjets,  setQuickProjets]  = useState<{ id: string; nom: string }[]>([])
   const [quickSaving,   setQuickSaving]   = useState(false)
+  const [quickSuccess,  setQuickSuccess]  = useState<'tache' | 'idee' | null>(null)
 
   const adminEmail = process.env.NEXT_PUBLIC_ADMIN_EMAIL
   const isAdmin    = !adminEmail || userEmail === adminEmail
@@ -79,6 +87,7 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
     setQuickTexte('')
     setQuickPrio('normale')
     setQuickProjetId('')
+    setQuickSuccess(null)
     setQuickOpen(true)
     // Charge les projets actifs pour le sélecteur
     supabase.from('projets').select('id, nom').in('statut', ['actif', 'en_pause']).order('nom')
@@ -89,23 +98,29 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
     if (!quickTexte.trim()) return
     setQuickSaving(true)
     const today = new Date().toISOString().split('T')[0]
-    await supabase.from('taches').insert({
+    const { error } = await supabase.from('taches').insert({
       texte: quickTexte.trim(), faite: false, date: today,
       priorite: quickPrio, source: 'manuel',
       projet_id: quickProjetId || null, etape_id: null,
     })
-    setQuickOpen(false)
     setQuickSaving(false)
+    if (!error) {
+      setQuickSuccess('tache')
+      setTimeout(() => { setQuickOpen(false); setQuickSuccess(null) }, 2200)
+    }
   }
 
   async function saveQuickIdee() {
     if (!quickTexte.trim()) return
     setQuickSaving(true)
-    await supabase.from('idees').insert({
+    const { error } = await supabase.from('idees').insert({
       texte: quickTexte.trim(), statut: 'capture', notes: null, projet_id: null,
     })
-    setQuickOpen(false)
     setQuickSaving(false)
+    if (!error) {
+      setQuickSuccess('idee')
+      setTimeout(() => { setQuickOpen(false); setQuickSuccess(null) }, 2200)
+    }
   }
 
   if (checking) {
@@ -163,6 +178,25 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
               {extraItems.map(item => <NavLink key={item.href} {...item} />)}
             </>
           )}
+          {NOTION_LINKS.length > 0 && (
+            <>
+              <div className="pt-3 pb-1 px-3">
+                <span className="text-[10px] font-semibold text-stone-300 uppercase tracking-wider">Notion</span>
+              </div>
+              {NOTION_LINKS.map(link => (
+                <a
+                  key={link.url}
+                  href={link.url}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="flex items-center gap-3 px-3 py-2.5 rounded-xl text-sm font-medium text-muted hover:bg-beige-100 hover:text-stone-800 transition"
+                >
+                  <ExternalLink size={16} className="shrink-0 text-stone-300" />
+                  {link.label}
+                </a>
+              ))}
+            </>
+          )}
         </nav>
         <div className="p-3 border-t border-border">
           <button
@@ -203,6 +237,26 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
                 </div>
                 {extraItems.map(item => (
                   <NavLink key={item.href} {...item} onClick={() => setMenuOpen(false)} />
+                ))}
+              </>
+            )}
+            {NOTION_LINKS.length > 0 && (
+              <>
+                <div className="pt-4 pb-1 px-4">
+                  <span className="text-[10px] font-semibold text-stone-300 uppercase tracking-wider">Notion</span>
+                </div>
+                {NOTION_LINKS.map(link => (
+                  <a
+                    key={link.url}
+                    href={link.url}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    onClick={() => setMenuOpen(false)}
+                    className="flex items-center gap-3 px-3 py-2.5 rounded-xl text-sm font-medium text-muted hover:bg-beige-100 hover:text-stone-800 transition"
+                  >
+                    <ExternalLink size={16} className="shrink-0 text-stone-300" />
+                    {link.label}
+                  </a>
                 ))}
               </>
             )}
@@ -253,7 +307,26 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
                 <div className="w-10 h-1 bg-stone-200 rounded-full mx-auto" />
                 <h2 className="font-bold text-stone-800 text-center text-base">Capture rapide</h2>
 
-                {!quickType ? (
+                {quickSuccess ? (
+                  <div className="text-center py-6 space-y-3">
+                    <p className="text-5xl">{quickSuccess === 'tache' ? '✅' : '💡'}</p>
+                    <p className="font-bold text-stone-800 text-base">
+                      {quickSuccess === 'tache' ? 'Tâche ajoutée !' : 'Idée capturée !'}
+                    </p>
+                    <p className="text-sm text-muted">
+                      {quickSuccess === 'tache'
+                        ? 'Tu la retrouveras dans tes tâches du jour'
+                        : 'Tu la retrouveras dans tes idées'}
+                    </p>
+                    <Link
+                      href={quickSuccess === 'tache' ? '/taches' : '/idees'}
+                      onClick={() => { setQuickOpen(false); setQuickSuccess(null) }}
+                      className="inline-flex items-center gap-1 text-sm font-semibold text-primary hover:underline"
+                    >
+                      Voir {quickSuccess === 'tache' ? 'mes tâches' : 'mes idées'} →
+                    </Link>
+                  </div>
+                ) : !quickType ? (
                   <div className="grid grid-cols-2 gap-3 pb-2">
                     <button
                       onClick={() => setQuickType('tache')}

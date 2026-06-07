@@ -6,6 +6,7 @@ import { supabase } from '@/lib/supabase'
 import { ArrowLeft, Plus, Check, Trash2, ChevronDown, ChevronUp } from 'lucide-react'
 import type { Projet, Etape, Tache } from '@/lib/types'
 import TacheModal, { PrioDot } from '@/components/TacheModal'
+import CrSection from '@/components/CrSection'
 
 const TYPE_LABEL: Record<string, string> = {
   client: 'Client', interne: 'Interne', personnel: 'Personnel',
@@ -310,6 +311,11 @@ export default function ProjetDetailPage() {
           </div>
         </div>
       )}
+
+      {/* ── Comptes Rendus ── */}
+      <div className="border-t border-border pt-5 mt-2">
+        <CrSection projetId={id} projetNom={projet.nom} />
+      </div>
 
       {selectedTache && (
         <TacheModal

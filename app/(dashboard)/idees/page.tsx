@@ -2,7 +2,7 @@
 
 import { useState, useEffect } from 'react'
 import { supabase } from '@/lib/supabase'
-import { Plus, Trash2, ChevronDown, ChevronUp, ArrowRight } from 'lucide-react'
+import { Plus, Trash2, ChevronDown, ChevronUp, ArrowRight, ExternalLink } from 'lucide-react'
 
 type IdeaStatut =
   | 'capture'
@@ -46,6 +46,17 @@ const STATUT_CONFIG: Record<IdeaStatut, { label: string; badge: string }> = {
   abandonnee:        { label: 'Abandonnee',        badge: 'bg-stone-50 text-stone-400' },
 }
 
+const STATUS_DOT: Record<IdeaStatut, string> = {
+  capture:            'bg-stone-300',
+  a_challenger:       'bg-amber-400',
+  en_evaluation:      'bg-blue-400',
+  liee_projet:        'bg-violet-400',
+  transformee_tache:  'bg-green-400',
+  transformee_projet: 'bg-green-400',
+  en_attente:         'bg-stone-200',
+  abandonnee:         'bg-stone-200',
+}
+
 const ACTIVE_STATUTS: IdeaStatut[] = ['capture', 'a_challenger', 'en_evaluation', 'liee_projet']
 const DONE_STATUTS:   IdeaStatut[] = ['transformee_tache', 'transformee_projet', 'en_attente', 'abandonnee']
 
@@ -69,6 +80,9 @@ export default function IdeesPage() {
   const [chats, setChats]               = useState<Record<string, { role: 'user' | 'assistant'; content: string }[]>>({})
   const [chatInputs, setChatInputs]     = useState<Record<string, string>>({})
   const [chatLoading, setChatLoading]   = useState<Record<string, boolean>>({})
+  const [notionSyncing, setNotionSyncing] = useState<Record<string, boolean>>({})
+  const [notionUrls,    setNotionUrls]    = useState<Record<string, string>>({})
+  const [showPicker,    setShowPicker]    = useState<Record<string, boolean>>({})
 
   useEffect(() => { load() }, [])
 
@@ -193,6 +207,20 @@ export default function IdeesPage() {
     dismissSuggestion(idee.id)
   }
 
+  async function syncToNotion(idee: Idee) {
+    setNotionSyncing(prev => ({ ...prev, [idee.id]: true }))
+    try {
+      const res = await fetch('/api/notion/sync-idee', {
+        method: 'POST',
+        headers: { 'content-type': 'application/json' },
+        body: JSON.stringify({ texte: idee.texte, statut: idee.statut, notes: idee.notes }),
+      })
+      const data = await res.json() as { url?: string; error?: string }
+      if (data.url) setNotionUrls(prev => ({ ...prev, [idee.id]: data.url! }))
+    } catch {}
+    setNotionSyncing(prev => ({ ...prev, [idee.id]: false }))
+  }
+
   async function remove(id: string) {
     await supabase.from('idees').delete().eq('id', id)
     setIdees(prev => prev.filter(i => i.id !== id))
@@ -259,52 +287,123 @@ export default function IdeesPage() {
           const suggestion = suggestions[idee.id]
 
           return (
-            <div key={idee.id} className="bg-surface border border-border rounded-2xl overflow-hidden">
+            <div key={idee.id} className="bg-surface border border-border rounded-xl overflow-hidden">
 
-              {/* Header */}
+              {/* Header — titre seul, tout le reste au clic */}
               <button
                 onClick={() => setExpanded(e => ({ ...e, [idee.id]: !e[idee.id] }))}
-                className="w-full flex items-start gap-3 p-4 text-left hover:bg-beige-50 transition"
+                className="w-full flex items-center gap-3 px-4 py-3 text-left hover:bg-beige-50 transition"
               >
-                <span className={`text-[10px] px-1.5 py-0.5 rounded-md font-medium shrink-0 mt-0.5 ${cfg.badge}`}>
-                  {cfg.label}
-                </span>
-                <span className="flex-1 text-sm text-stone-800 leading-snug">{idee.texte}</span>
+                <span className={`w-2 h-2 rounded-full shrink-0 ${STATUS_DOT[idee.statut] ?? 'bg-stone-300'}`} />
+                <span className="flex-1 text-sm text-stone-800 leading-snug line-clamp-1">{idee.texte}</span>
                 {isOpen
-                  ? <ChevronUp size={15} className="text-muted shrink-0" />
-                  : <ChevronDown size={15} className="text-muted shrink-0" />}
+                  ? <ChevronUp size={14} className="text-stone-300 shrink-0" />
+                  : <ChevronDown size={14} className="text-stone-300 shrink-0" />}
               </button>
 
-              {/* IA Suggestion banner */}
-              {suggestion && (
-                <div className="mx-4 mb-3 bg-amber-50 border border-amber-200 rounded-xl px-3 py-2.5 flex items-start gap-2">
-                  <span className="text-sm shrink-0">💡</span>
-                  <div className="flex-1 min-w-0">
-                    <p className="text-xs text-amber-800 font-semibold leading-snug">
-                      Lier à <strong>{suggestion.projet_nom}</strong>&nbsp;?
-                    </p>
-                    <p className="text-[11px] text-amber-700 mt-0.5 leading-relaxed">{suggestion.raison}</p>
-                  </div>
-                  <div className="flex gap-1 shrink-0">
-                    <button
-                      onClick={() => acceptSuggestion(idee, suggestion)}
-                      className="text-[11px] bg-amber-500 text-white px-2 py-1 rounded-lg font-semibold hover:bg-amber-600 transition"
-                    >
-                      Lier
-                    </button>
-                    <button
-                      onClick={() => dismissSuggestion(idee.id)}
-                      className="text-[11px] text-amber-700 px-2 py-1 rounded-lg font-medium hover:bg-amber-100 transition"
-                    >
-                      ✕
-                    </button>
-                  </div>
-                </div>
-              )}
-
-              {/* Expanded */}
+              {/* Détail — visible uniquement au clic */}
               {isOpen && (
                 <div className="border-t border-border">
+
+                  {/* Statut + suggestion IA */}
+                  <div className="px-4 pt-3 flex items-start gap-2 flex-wrap">
+                    <span className={`text-[10px] px-1.5 py-0.5 rounded-md font-medium ${cfg.badge}`}>
+                      {cfg.label}
+                    </span>
+                  </div>
+
+                  {/* ── Liaison projet ── */}
+                  {(idee.statut === 'en_evaluation' || idee.statut === 'liee_projet') && (
+                    <div className="mx-4 mt-2">
+                      {linkedProj ? (
+                        /* Projet déjà lié */
+                        <div className="flex items-center gap-2 bg-violet-50 border border-violet-200 rounded-xl px-3 py-2">
+                          <span className="w-2 h-2 rounded-full bg-violet-400 shrink-0" />
+                          <span className="text-xs font-semibold text-violet-700 flex-1">{linkedProj.nom}</span>
+                          <button
+                            onClick={() => { setShowPicker(p => ({ ...p, [idee.id]: true })) }}
+                            className="text-[11px] text-violet-500 hover:text-violet-700 transition"
+                          >
+                            Changer
+                          </button>
+                        </div>
+                      ) : showPicker[idee.id] ? (
+                        /* Picker ouvert — liste tous les projets */
+                        <div className="bg-white border border-primary/30 rounded-xl overflow-hidden shadow-card">
+                          <div className="px-3 py-2 border-b border-border flex items-center justify-between">
+                            <span className="text-xs font-semibold text-stone-700">Lier à un projet :</span>
+                            <button
+                              onClick={() => setShowPicker(p => ({ ...p, [idee.id]: false }))}
+                              className="text-xs text-muted hover:text-stone-700 transition"
+                            >✕</button>
+                          </div>
+                          <div className="max-h-48 overflow-y-auto">
+                            {projets.length === 0 ? (
+                              <p className="text-xs text-muted px-3 py-3">Aucun projet actif</p>
+                            ) : projets.map(p => (
+                              <button
+                                key={p.id}
+                                onClick={() => { linkProjet(idee.id, p.id); setShowPicker(prev => ({ ...prev, [idee.id]: false })); dismissSuggestion(idee.id) }}
+                                className="w-full text-left px-3 py-2.5 text-sm text-stone-700 hover:bg-primary-light hover:text-primary transition flex items-center gap-2"
+                              >
+                                <span className="w-1.5 h-1.5 rounded-full bg-primary/40 shrink-0" />
+                                {p.nom}
+                              </button>
+                            ))}
+                          </div>
+                          <div className="px-3 py-2 border-t border-border">
+                            <button
+                              onClick={() => setShowPicker(p => ({ ...p, [idee.id]: false }))}
+                              className="text-xs text-muted hover:text-stone-600 transition"
+                            >
+                              Pas de projet pour l'instant
+                            </button>
+                          </div>
+                        </div>
+                      ) : suggestion ? (
+                        /* Suggestion IA */
+                        <div className="bg-amber-50 border border-amber-200 rounded-xl px-3 py-2.5">
+                          <div className="flex items-start gap-2">
+                            <span className="text-sm shrink-0">✦</span>
+                            <div className="flex-1 min-w-0">
+                              <p className="text-xs text-amber-800 font-semibold leading-snug">
+                                IA suggère : <strong>{suggestion.projet_nom}</strong>
+                              </p>
+                              <p className="text-[11px] text-amber-700 mt-0.5 leading-relaxed">{suggestion.raison}</p>
+                            </div>
+                          </div>
+                          <div className="flex gap-1.5 mt-2">
+                            <button
+                              onClick={() => acceptSuggestion(idee, suggestion)}
+                              className="text-[11px] bg-amber-500 text-white px-2.5 py-1.5 rounded-lg font-semibold hover:bg-amber-600 transition"
+                            >
+                              Lier à ce projet
+                            </button>
+                            <button
+                              onClick={() => { dismissSuggestion(idee.id); setShowPicker(p => ({ ...p, [idee.id]: true })) }}
+                              className="text-[11px] text-amber-700 border border-amber-300 px-2.5 py-1.5 rounded-lg font-medium hover:bg-amber-100 transition"
+                            >
+                              Autre projet ▾
+                            </button>
+                            <button
+                              onClick={() => dismissSuggestion(idee.id)}
+                              className="text-[11px] text-amber-600/70 px-2 py-1.5 rounded-lg hover:bg-amber-100 transition ml-auto"
+                            >
+                              Ignorer
+                            </button>
+                          </div>
+                        </div>
+                      ) : (
+                        /* Pas de suggestion — bouton pour ouvrir picker */
+                        <button
+                          onClick={() => setShowPicker(p => ({ ...p, [idee.id]: true }))}
+                          className="flex items-center gap-2 text-xs text-primary border border-primary/30 px-3 py-1.5 rounded-xl hover:bg-primary-light transition"
+                        >
+                          <ArrowRight size={12} /> Lier à un projet
+                        </button>
+                      )}
+                    </div>
+                  )}
 
                   {/* ── Sparring IA (statut a_challenger uniquement) ── */}
                   {idee.statut === 'a_challenger' && (
@@ -375,45 +474,70 @@ export default function IdeesPage() {
                       className="w-full text-sm border border-border rounded-xl px-3 py-2 focus:outline-none focus:ring-2 focus:ring-primary/30 bg-beige-50 resize-none"
                     />
 
-                    {/* Lier a un projet */}
-                    {(idee.statut === 'en_evaluation' || idee.statut === 'liee_projet') && (
-                      <div className="flex items-center gap-2">
-                        <span className="text-xs text-muted shrink-0">Projet :</span>
-                        {linkedProj ? (
-                          <span className="text-xs font-medium text-primary">{linkedProj.nom}</span>
-                        ) : (
-                          <select
-                            onChange={e => e.target.value && linkProjet(idee.id, e.target.value)}
-                            className="text-xs border border-border rounded-lg px-2 py-1.5 bg-beige-50 focus:outline-none"
-                            defaultValue=""
-                          >
-                            <option value="">Choisir un projet...</option>
-                            {projets.map(p => <option key={p.id} value={p.id}>{p.nom}</option>)}
-                          </select>
-                        )}
-                      </div>
-                    )}
 
                     {/* Next actions */}
                     {actions.length > 0 && (
                       <div className="flex flex-wrap gap-2">
-                        {actions.map(a => (
-                          <button
-                            key={a.next}
-                            onClick={() => {
-                              updateStatut(idee.id, a.next)
-                              if (a.next === 'a_challenger') {
-                                setExpanded(e => ({ ...e, [idee.id]: true }))
-                                startChallenge(idee)
-                              }
-                              if (a.next === 'en_evaluation') fetchSuggestion(idee.id, idee.texte)
-                            }}
-                            className="flex items-center gap-1 text-xs font-medium text-primary border border-primary/30 px-2.5 py-1.5 rounded-xl hover:bg-primary-light transition"
-                          >
-                            <ArrowRight size={12} /> {a.label}
-                          </button>
-                        ))}
+                        {actions.map(a => {
+                          /* "Lier à un projet" ouvre le picker au lieu de changer le statut */
+                          if (a.next === 'liee_projet') {
+                            return (
+                              <button
+                                key={a.next}
+                                onClick={() => setShowPicker(p => ({ ...p, [idee.id]: true }))}
+                                className="flex items-center gap-1 text-xs font-medium text-primary border border-primary/30 px-2.5 py-1.5 rounded-xl hover:bg-primary-light transition"
+                              >
+                                <ArrowRight size={12} /> {a.label}
+                              </button>
+                            )
+                          }
+                          /* "En attente" — label explicite pour éviter la surprise */
+                          const isArchive = a.next === 'en_attente' || a.next === 'abandonnee'
+                          return (
+                            <button
+                              key={a.next}
+                              onClick={() => {
+                                updateStatut(idee.id, a.next)
+                                if (a.next === 'a_challenger') {
+                                  setExpanded(e => ({ ...e, [idee.id]: true }))
+                                  startChallenge(idee)
+                                }
+                                if (a.next === 'en_evaluation') fetchSuggestion(idee.id, idee.texte)
+                              }}
+                              className={`flex items-center gap-1 text-xs font-medium px-2.5 py-1.5 rounded-xl transition ${
+                                isArchive
+                                  ? 'text-muted border border-border hover:bg-beige-50'
+                                  : 'text-primary border border-primary/30 hover:bg-primary-light'
+                              }`}
+                            >
+                              <ArrowRight size={12} /> {a.label}
+                              {isArchive && <span className="text-[10px] opacity-60 ml-0.5">(archive)</span>}
+                            </button>
+                          )
+                        })}
                       </div>
+                    )}
+
+                    {/* Notion sync — visible si en_attente ou abandonnee */}
+                    {(idee.statut === 'en_attente' || idee.statut === 'abandonnee' || idee.statut === 'en_evaluation') && (
+                      notionUrls[idee.id] ? (
+                        <a
+                          href={notionUrls[idee.id]}
+                          target="_blank"
+                          rel="noopener noreferrer"
+                          className="flex items-center gap-1 text-xs text-stone-400 hover:text-stone-600 transition"
+                        >
+                          <ExternalLink size={12} /> Voir sur Notion ✓
+                        </a>
+                      ) : (
+                        <button
+                          onClick={() => syncToNotion(idee)}
+                          disabled={notionSyncing[idee.id]}
+                          className="flex items-center gap-1 text-xs text-stone-400 hover:text-stone-700 border border-stone-200 hover:border-stone-400 px-2 py-1 rounded-lg transition disabled:opacity-40"
+                        >
+                          {notionSyncing[idee.id] ? '⏳ Envoi…' : '📎 Archiver sur Notion'}
+                        </button>
+                      )
                     )}
 
                     {/* Delete */}
@@ -452,20 +576,15 @@ export default function IdeesPage() {
           </button>
           {showDone && (
             <div className="mt-2 space-y-2">
-              {done.map(idee => {
-                const cfg = STATUT_CONFIG[idee.statut]
-                return (
-                  <div key={idee.id} className="flex items-start gap-3 p-3 bg-surface border border-border rounded-xl opacity-60">
-                    <span className={`text-[10px] px-1.5 py-0.5 rounded-md font-medium shrink-0 mt-0.5 ${cfg.badge}`}>
-                      {cfg.label}
-                    </span>
-                    <span className="flex-1 text-sm text-muted line-clamp-2">{idee.texte}</span>
-                    <button onClick={() => remove(idee.id)} className="p-1 text-muted hover:text-red-400 transition shrink-0">
-                      <Trash2 size={12} />
-                    </button>
-                  </div>
-                )
-              })}
+              {done.map(idee => (
+                <div key={idee.id} className="flex items-center gap-3 px-4 py-2.5 bg-surface border border-border rounded-xl opacity-50 group">
+                  <span className={`w-2 h-2 rounded-full shrink-0 ${STATUS_DOT[idee.statut] ?? 'bg-stone-200'}`} />
+                  <span className="flex-1 text-sm text-muted line-clamp-1">{idee.texte}</span>
+                  <button onClick={() => remove(idee.id)} className="opacity-0 group-hover:opacity-100 p-1 text-muted hover:text-red-400 transition shrink-0">
+                    <Trash2 size={12} />
+                  </button>
+                </div>
+              ))}
             </div>
           )}
         </div>
