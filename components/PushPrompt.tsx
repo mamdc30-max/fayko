@@ -63,7 +63,7 @@ export default function PushPrompt() {
         <div className="flex-1">
           <p className="text-sm font-semibold">Activer les notifications</p>
           <p className="text-xs text-stone-300 mt-0.5">
-            Re&ccedil;ois une alerte quand une mission urgente est d&eacute;tect&eacute;e.
+            Brief matinal chaque matin + alerte t&acirc;ches urgentes.
           </p>
           <div className="flex gap-2 mt-3">
             <button
