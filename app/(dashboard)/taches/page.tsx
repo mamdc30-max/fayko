@@ -109,6 +109,7 @@ export default function TachesPage() {
   const [newTexte, setNewTexte] = useState('')
   const [newEcheance, setNewEcheance] = useState('')
   const [newPriorite, setNewPriorite] = useState<'haute' | 'normale' | 'basse'>('normale')
+  const [bulkLoading, setBulkLoading] = useState(false)
 
   useEffect(() => { load() }, [])
 
@@ -155,6 +156,24 @@ export default function TachesPage() {
     setTaches(prev => prev.filter(t => t.id !== id))
   }
 
+  async function reporterToutes(ids: string[]) {
+    if (!ids.length) return
+    setBulkLoading(true)
+    const todayStr = new Date().toISOString().split('T')[0]
+    await supabase.from('taches').update({ date: todayStr, echeance: null }).in('id', ids)
+    setTaches(prev => prev.map(t => ids.includes(t.id) ? { ...t, date: todayStr, echeance: null } : t))
+    setBulkLoading(false)
+  }
+
+  async function supprimerToutes(ids: string[]) {
+    if (!ids.length) return
+    if (!confirm(`Supprimer ${ids.length} tâches en retard définitivement ?`)) return
+    setBulkLoading(true)
+    await supabase.from('taches').delete().in('id', ids)
+    setTaches(prev => prev.filter(t => !ids.includes(t.id)))
+    setBulkLoading(false)
+  }
+
   const today = new Date().toISOString().split('T')[0]
   const endOfWeek = new Date()
   endOfWeek.setDate(endOfWeek.getDate() + 7)
@@ -163,11 +182,13 @@ export default function TachesPage() {
   const pending = taches.filter(t => !t.faite)
   const done = taches.filter(t => t.faite)
 
-  const overdue   = pending.filter(t => t.echeance && t.echeance < today)
-  const todayT    = pending.filter(t => t.echeance === today)
-  const thisWeek  = pending.filter(t => t.echeance && t.echeance > today && t.echeance <= endOfWeekStr)
-  const later     = pending.filter(t => t.echeance && t.echeance > endOfWeekStr)
-  const noDate    = pending.filter(t => !t.echeance)
+  // Date effective = echeance si définie, sinon date de planification
+  const eff       = (t: Tache) => t.echeance ?? t.date
+  const overdue   = pending.filter(t => eff(t) < today)
+  const todayT    = pending.filter(t => eff(t) === today)
+  const thisWeek  = pending.filter(t => eff(t) > today && eff(t) <= endOfWeekStr)
+  const later     = pending.filter(t => eff(t) > endOfWeekStr)
+  const noDate    = pending.filter(t => !t.echeance && !t.date)
 
   if (loading) return <div className="text-muted text-sm pt-8 text-center">Chargement…</div>
 
@@ -225,6 +246,34 @@ export default function TachesPage() {
               className="ml-auto flex items-center gap-1 bg-primary text-white text-sm font-medium px-3 py-2 rounded-xl disabled:opacity-40 hover:bg-primary-dark transition"
             >
               <Check size={14} /> Ajouter
+            </button>
+          </div>
+        </div>
+      )}
+
+      {/* Bannière retard bulk */}
+      {overdue.length > 0 && (
+        <div className="bg-red-50 border border-red-200 rounded-2xl px-4 py-3 flex items-center gap-3 flex-wrap">
+          <div className="flex-1 min-w-0">
+            <p className="text-sm font-bold text-red-600">
+              {overdue.length} tâche{overdue.length > 1 ? 's' : ''} en retard
+            </p>
+            <p className="text-xs text-red-400 mt-0.5">Que veux-tu faire avec elles ?</p>
+          </div>
+          <div className="flex gap-2 shrink-0">
+            <button
+              onClick={() => reporterToutes(overdue.map(t => t.id))}
+              disabled={bulkLoading}
+              className="text-xs font-semibold bg-navy text-white px-3 py-1.5 rounded-xl hover:bg-navy-deep transition disabled:opacity-50"
+            >
+              {bulkLoading ? '…' : 'Reporter à aujourd\'hui'}
+            </button>
+            <button
+              onClick={() => supprimerToutes(overdue.map(t => t.id))}
+              disabled={bulkLoading}
+              className="text-xs font-semibold text-red-600 border border-red-200 px-3 py-1.5 rounded-xl hover:bg-red-100 transition disabled:opacity-50"
+            >
+              Tout supprimer
             </button>
           </div>
         </div>

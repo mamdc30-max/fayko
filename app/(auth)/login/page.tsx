@@ -35,8 +35,9 @@ export default function LoginPage() {
     <div className="min-h-screen bg-beige flex items-center justify-center p-4">
       <div className="w-full max-w-sm">
         <div className="text-center mb-8">
-          <h1 className="text-4xl font-bold text-primary mb-1">Fayko</h1>
-          <p className="text-muted text-sm">Outil de devis et suivi client</p>
+          <p className="eyebrow mb-2">YaatalCo</p>
+          <h1 className="text-4xl font-display font-bold text-primary mb-1">Fayko</h1>
+          <p className="text-muted text-sm">Pilotage · Projets · Clients</p>
         </div>
 
         <div className="bg-surface rounded-2xl shadow-sm border border-border p-6">
