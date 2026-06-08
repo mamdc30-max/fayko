@@ -27,6 +27,8 @@ export default function ParametresPage() {
   const [editElement, setEditElement] = useState({ nom: '', prix: '' })
 
   const [savedSettings, setSavedSettings] = useState(false)
+  const [gcalIcsUrl,   setGcalIcsUrl]   = useState('')
+  const [gcalSaved,    setGcalSaved]    = useState(false)
 
   // Templates messages
   const [templates, setTemplates] = useState<Template[]>([])
@@ -53,7 +55,10 @@ export default function ParametresPage() {
       ])
       if (f) setForfaits(f)
       if (e) setElements(e)
-      if (s) setSettings(s)
+      if (s) {
+        setSettings(s)
+        setGcalIcsUrl((s as typeof s & { gcal_ics_url?: string | null }).gcal_ics_url ?? '')
+      }
       if (t) setTemplates(t)
       setLoading(false)
     }
@@ -126,6 +131,12 @@ export default function ParametresPage() {
     setTimeout(() => setSavedSettings(false), 2000)
   }
 
+  async function saveGcalUrl() {
+    await supabase.from('settings').update({ gcal_ics_url: gcalIcsUrl.trim() || null }).eq('id', settings.id)
+    setGcalSaved(true)
+    setTimeout(() => setGcalSaved(false), 2500)
+  }
+
   async function saveTemplate(id: number) {
     await supabase.from('templates').update({ contenu: editTemplateContenu }).eq('id', id)
     setTemplates(prev => prev.map(t => t.id === id ? { ...t, contenu: editTemplateContenu } : t))
@@ -165,6 +176,51 @@ export default function ParametresPage() {
               {savedSettings ? 'Enregistré' : 'Enregistrer'}
             </button>
           </div>
+        </section>
+      )}
+
+      {/* Google Agenda (admin seulement) */}
+      {isAdmin && (
+        <section className="bg-surface rounded-2xl border border-border p-4 space-y-3">
+          <div>
+            <h2 className="font-semibold text-stone-800 text-sm">📅 Google Agenda</h2>
+            <p className="text-xs text-muted mt-1 leading-relaxed">
+              Colle ici l&apos;URL secrète iCal de ton Google Agenda pour afficher tes événements sur la page Focus.
+              <br />
+              <a
+                href="https://calendar.google.com/calendar/r/settings"
+                target="_blank"
+                rel="noopener noreferrer"
+                className="text-primary hover:underline"
+              >
+                Où la trouver →
+              </a>
+              {' '}Google Agenda → Paramètres → ton agenda → &laquo;&nbsp;Adresse secrète au format iCal&nbsp;&raquo;
+            </p>
+          </div>
+          <div className="flex gap-2">
+            <input
+              type="url"
+              value={gcalIcsUrl}
+              onChange={e => setGcalIcsUrl(e.target.value)}
+              placeholder="https://calendar.google.com/calendar/ical/…/basic.ics"
+              className="flex-1 border border-border rounded-xl px-3 py-2.5 text-xs bg-beige-50 focus:outline-none focus:ring-2 focus:ring-primary/30 text-stone-700 placeholder:text-stone-300"
+            />
+            <button
+              onClick={saveGcalUrl}
+              className={`flex items-center gap-1.5 px-4 py-2.5 rounded-xl text-sm font-medium transition shrink-0 ${
+                gcalSaved ? 'bg-green-100 text-green-700' : 'bg-primary text-white hover:bg-primary-dark'
+              }`}
+            >
+              {gcalSaved ? <Check size={15} /> : <Save size={15} />}
+              {gcalSaved ? 'Enregistré' : 'Enregistrer'}
+            </button>
+          </div>
+          {gcalIcsUrl && (
+            <p className="text-[10px] text-muted">
+              ✅ Agenda connecté — les événements du jour apparaîtront sur la page Focus.
+            </p>
+          )}
         </section>
       )}
 

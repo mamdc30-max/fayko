@@ -6,6 +6,7 @@ import { supabase } from '@/lib/supabase'
 import { formatDate, formatPrice, STATUT_COLORS } from '@/lib/utils'
 import { Bell, Plus, Check, Trash2, CalendarDays, ChevronRight } from 'lucide-react'
 import type { Devis, Client, Tache, AutomationLog, DailyFocus, Projet } from '@/lib/types'
+import type { CalEvent } from '@/app/api/calendar/route'
 import { useUserContext } from '@/lib/user-context'
 import TacheModal, { PrioDot } from '@/components/TacheModal'
 
@@ -65,6 +66,8 @@ export default function FocusPage() {
   const [loading,     setLoading]     = useState(true)
   const [newPrioTexte, setNewPrioTexte] = useState('')
   const [prioSaving,   setPrioSaving]   = useState(false)
+  const [calEvents,    setCalEvents]    = useState<CalEvent[]>([])
+  const [calConfigured, setCalConfigured] = useState(false)
 
   // ── Client state ──
   const [relances,     setRelances]      = useState<DevisWithClient[]>([])
@@ -138,6 +141,15 @@ export default function FocusPage() {
     })) as ProjetActif[])
 
     setRetard(retardCount ?? 0)
+
+    // Google Calendar
+    fetch('/api/calendar')
+      .then(r => r.json())
+      .then(({ events, configured }) => {
+        if (configured) setCalConfigured(true)
+        if (events?.length) setCalEvents(events)
+      })
+      .catch(() => {})
 
     // Deduplicated automation logs
     if (logs) {
@@ -470,6 +482,67 @@ export default function FocusPage() {
         </section>
       )}
 
+
+      {/* ── 1b. Agenda Google du jour ── */}
+      {(calEvents.length > 0 || calConfigured) && (
+        <section className="bg-surface border border-border rounded-2xl overflow-hidden">
+          <div className="flex items-center justify-between px-4 py-3 border-b border-border">
+            <h2 className="font-semibold text-stone-800 text-sm flex items-center gap-2">
+              📅 Agenda du jour
+              {calEvents.length > 0 && (
+                <span className="text-xs text-muted font-normal">
+                  {calEvents.length} événement{calEvents.length > 1 ? 's' : ''}
+                </span>
+              )}
+            </h2>
+            <a
+              href="https://calendar.google.com/calendar/r/day"
+              target="_blank"
+              rel="noopener noreferrer"
+              className="text-xs text-primary hover:underline"
+            >
+              Ouvrir →
+            </a>
+          </div>
+
+          {calEvents.length === 0 ? (
+            <p className="px-4 py-3 text-sm text-muted">Aucun événement aujourd&apos;hui</p>
+          ) : (
+            <div className="divide-y divide-border">
+              {calEvents.map((ev, i) => (
+                <div key={i} className="flex items-start gap-3 px-4 py-3">
+                  {/* Heure */}
+                  <div className="shrink-0 text-right min-w-[52px]">
+                    {ev.allDay ? (
+                      <span className="text-[10px] font-medium text-muted bg-stone-100 px-1.5 py-0.5 rounded">
+                        Journée
+                      </span>
+                    ) : (
+                      <div>
+                        <p className="text-xs font-semibold text-navy">{ev.startTime}</p>
+                        {ev.endTime && (
+                          <p className="text-[10px] text-muted">{ev.endTime}</p>
+                        )}
+                      </div>
+                    )}
+                  </div>
+
+                  {/* Barre colorée */}
+                  <div className={`w-0.5 self-stretch rounded-full shrink-0 ${ev.allDay ? 'bg-stone-200' : 'bg-primary'}`} />
+
+                  {/* Titre + lieu */}
+                  <div className="flex-1 min-w-0">
+                    <p className="text-sm font-medium text-stone-800 leading-snug">{ev.title}</p>
+                    {ev.location && (
+                      <p className="text-xs text-muted mt-0.5 truncate">📍 {ev.location}</p>
+                    )}
+                  </div>
+                </div>
+              ))}
+            </div>
+          )}
+        </section>
+      )}
 
       {/* ── 2. Focus de la semaine ── */}
       <section className="bg-surface border border-border rounded-2xl overflow-hidden">

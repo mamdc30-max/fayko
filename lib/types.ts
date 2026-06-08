@@ -85,6 +85,7 @@ export interface Template {
 export interface Settings {
   id: number
   acompte_pourcentage: number
+  gcal_ics_url: string | null
 }
 
 export interface Tache {
