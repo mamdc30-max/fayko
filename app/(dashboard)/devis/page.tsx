@@ -173,7 +173,7 @@ export default function NewDevisPage() {
   return (
     <div className="space-y-5">
       <div>
-        <h1 className="text-xl font-bold text-stone-800">{isAdmin ? 'Nouveau devis' : 'Nouvelle commande'}</h1>
+        <h1 className="text-xl font-bold text-ink">{isAdmin ? 'Nouveau devis' : 'Nouvelle commande'}</h1>
         <p className="text-xs text-muted mt-0.5">
           {isAdmin ? 'Remplis les informations, copie et envoie sur WhatsApp' : 'Choisis les articles et envoie sur WhatsApp en 30 secondes'}
         </p>
@@ -181,7 +181,7 @@ export default function NewDevisPage() {
 
       {/* CLIENT */}
       <section className="bg-surface rounded-2xl border border-border p-4 space-y-3">
-        <h2 className="font-semibold text-stone-800 text-sm">Client</h2>
+        <h2 className="font-semibold text-ink text-sm">Client</h2>
 
         {!selectedClient && !showClientForm && (
           <>
@@ -250,7 +250,7 @@ export default function NewDevisPage() {
           <div className="flex items-center justify-between bg-primary-light rounded-xl px-3 py-2.5">
             <div>
               <div className="flex items-center gap-2">
-                <p className="font-medium text-sm text-stone-800">{selectedClient.prenom} {selectedClient.nom}</p>
+                <p className="font-medium text-sm text-ink">{selectedClient.prenom} {selectedClient.nom}</p>
                 {selectedClient.id === 'new' && (
                   <span className="text-[10px] font-semibold bg-green-100 text-green-700 px-1.5 py-0.5 rounded-full">Nouveau ✓</span>
                 )}
@@ -264,7 +264,7 @@ export default function NewDevisPage() {
 
       {/* TITRE */}
       <section className="bg-surface rounded-2xl border border-border p-4">
-        <label className="block font-semibold text-stone-800 text-sm mb-2">
+        <label className="block font-semibold text-ink text-sm mb-2">
           {isAdmin ? "Titre de l'offre" : 'Intitulé'}
           {!isAdmin && <span className="text-muted font-normal text-xs ml-1">(optionnel)</span>}
         </label>
@@ -278,7 +278,7 @@ export default function NewDevisPage() {
 
       {/* LIGNES */}
       <section className="bg-surface rounded-2xl border border-border p-4 space-y-3">
-        <h2 className="font-semibold text-stone-800 text-sm">{isAdmin ? 'Éléments du devis' : 'Articles de la commande'}</h2>
+        <h2 className="font-semibold text-ink text-sm">{isAdmin ? 'Éléments du devis' : 'Articles de la commande'}</h2>
 
         {lignes.map(ligne => (
           <div key={ligne.id} className="bg-beige-50 border border-border rounded-xl p-3 space-y-2">
@@ -293,7 +293,7 @@ export default function NewDevisPage() {
                 />
               ) : (
                 <div className="flex-1">
-                  <p className="text-sm font-medium text-stone-800">{ligne.libelle}</p>
+                  <p className="text-sm font-medium text-ink">{ligne.libelle}</p>
                   {ligne.description && <p className="text-xs text-muted mt-0.5">{ligne.description}</p>}
                 </div>
               )}
@@ -322,7 +322,7 @@ export default function NewDevisPage() {
                 <span className="absolute right-2.5 top-1/2 -translate-y-1/2 text-xs text-muted">€</span>
               </div>
               <span className="text-muted text-xs">=</span>
-              <span className="text-sm font-bold text-stone-800 shrink-0 min-w-[60px] text-right">
+              <span className="text-sm font-bold text-ink shrink-0 min-w-[60px] text-right">
                 {formatPrice((ligne.quantite || 1) * ligne.prix)}
               </span>
             </div>
@@ -416,7 +416,7 @@ export default function NewDevisPage() {
             </button>
             {openSection === 'libre' && (
               <div className="mt-2">
-                <button onClick={addLibre} className="bg-beige-100 text-stone-700 text-sm px-4 py-2 rounded-xl border border-border">
+                <button onClick={addLibre} className="bg-beige-100 text-ink text-sm px-4 py-2 rounded-xl border border-border">
                   Ajouter une ligne vide
                 </button>
               </div>
@@ -429,7 +429,7 @@ export default function NewDevisPage() {
       {(isAdmin || showRemise) ? (
         <section className="bg-surface rounded-2xl border border-border p-4 space-y-3">
           <div className="flex items-center justify-between">
-            <h2 className="font-semibold text-stone-800 text-sm">Remise (optionnelle)</h2>
+            <h2 className="font-semibold text-ink text-sm">Remise (optionnelle)</h2>
             {!isAdmin && <button onClick={() => { setShowRemise(false); setRemiseType(''); setRemiseValeur('') }} className="text-xs text-muted">Supprimer</button>}
           </div>
           <div className="flex gap-2">
@@ -453,7 +453,7 @@ export default function NewDevisPage() {
 
       {/* MODE RÈGLEMENT */}
       <section className="bg-surface rounded-2xl border border-border p-4">
-        <h2 className="font-semibold text-stone-800 text-sm mb-3">Mode de règlement</h2>
+        <h2 className="font-semibold text-ink text-sm mb-3">Mode de règlement</h2>
         <div className="grid grid-cols-2 gap-2">
           {(['acompte', 'total'] as const).map(mode => (
             <button
@@ -463,7 +463,7 @@ export default function NewDevisPage() {
                 'py-2.5 rounded-xl text-sm font-medium border transition',
                 modeReglement === mode
                   ? 'bg-primary text-white border-primary'
-                  : 'bg-beige-50 text-stone-700 border-border hover:border-primary/30'
+                  : 'bg-beige-50 text-ink border-border hover:border-primary/30'
               )}
             >
               {mode === 'acompte' ? `Acompte ${settings.acompte_pourcentage}%` : 'Paiement total'}
@@ -475,7 +475,7 @@ export default function NewDevisPage() {
       {/* TOTAL */}
       {lignes.length > 0 && (
         <div className="bg-primary-light border border-primary/20 rounded-2xl p-4 space-y-1">
-          <div className="flex justify-between text-sm font-semibold text-stone-800">
+          <div className="flex justify-between text-sm font-semibold text-ink">
             <span>Total</span>
             <span>{formatPrice(total)}</span>
           </div>
@@ -491,8 +491,8 @@ export default function NewDevisPage() {
       {/* PREVIEW */}
       {preview && (
         <section className="bg-surface rounded-2xl border border-border p-4">
-          <h2 className="font-semibold text-stone-800 text-sm mb-3">Aperçu WhatsApp</h2>
-          <pre className="text-sm text-stone-700 whitespace-pre-wrap leading-relaxed font-sans bg-beige-50 rounded-xl p-3 border border-border">
+          <h2 className="font-semibold text-ink text-sm mb-3">Aperçu WhatsApp</h2>
+          <pre className="text-sm text-ink whitespace-pre-wrap leading-relaxed font-sans bg-beige-50 rounded-xl p-3 border border-border">
             {preview}
           </pre>
         </section>
@@ -520,7 +520,7 @@ export default function NewDevisPage() {
               {/* Secondary: Copy */}
               {canCopy && (
                 <button onClick={handleCopy}
-                  className="flex items-center justify-center gap-2 w-full py-3 rounded-2xl border border-border text-stone-600 text-sm font-medium hover:bg-beige-50 transition">
+                  className="flex items-center justify-center gap-2 w-full py-3 rounded-2xl border border-border text-muted text-sm font-medium hover:bg-beige-50 transition">
                   <Copy size={16} /> Copier le texte sans envoyer
                 </button>
               )}
@@ -560,7 +560,7 @@ export default function NewDevisPage() {
           </div>
           <button
             onClick={() => router.push('/historique')}
-            className="flex items-center justify-center gap-2 w-full py-3 rounded-2xl border border-border text-stone-600 text-sm font-medium hover:bg-beige-50 transition"
+            className="flex items-center justify-center gap-2 w-full py-3 rounded-2xl border border-border text-muted text-sm font-medium hover:bg-beige-50 transition"
           >
             <History size={16} /> Voir l'historique
           </button>

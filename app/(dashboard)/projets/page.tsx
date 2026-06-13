@@ -15,8 +15,8 @@ const TYPE_CONFIG = {
 const STATUT_CONFIG = {
   actif:    { label: 'Actif',    badge: 'bg-green-50 text-green-600' },
   en_pause: { label: 'En pause', badge: 'bg-amber-50 text-amber-600' },
-  termine:  { label: 'Terminé',  badge: 'bg-stone-100 text-stone-500' },
-  archive:  { label: 'Archivé',  badge: 'bg-stone-50 text-stone-400' },
+  termine:  { label: 'Terminé',  badge: 'bg-beige-100 text-muted' },
+  archive:  { label: 'Archivé',  badge: 'bg-beige-50 text-muted/60' },
 }
 
 const TABS = ['Tous', 'Client', 'Interne', 'Personnel'] as const
@@ -94,7 +94,7 @@ export default function ProjetsPage() {
       {/* Header */}
       <div className="flex items-center justify-between">
         <div>
-          <h1 className="text-xl font-bold text-stone-800">Projets</h1>
+          <h1 className="text-xl font-bold text-ink">Projets</h1>
           <p className="text-xs text-muted mt-0.5">{actifCount} actif{actifCount !== 1 ? 's' : ''}</p>
         </div>
         <button
@@ -169,7 +169,7 @@ export default function ProjetsPage() {
             key={t}
             onClick={() => setTab(t)}
             className={`flex-1 text-xs py-2 rounded-lg font-medium transition ${
-              tab === t ? 'bg-primary text-white' : 'text-muted hover:text-stone-700'
+              tab === t ? 'bg-primary text-white' : 'text-muted hover:text-ink'
             }`}
           >
             {t}
@@ -193,7 +193,7 @@ export default function ProjetsPage() {
                 <div className={`w-2 h-2 rounded-full mt-2 shrink-0 ${cfg.dot}`} />
                 <div className="flex-1 min-w-0">
                   <div className="flex items-center gap-2 flex-wrap">
-                    <span className="text-sm font-semibold text-stone-800">{p.nom}</span>
+                    <span className="text-sm font-semibold text-ink">{p.nom}</span>
                     {p.client_nom && <span className="text-xs text-muted">· {p.client_nom}</span>}
                   </div>
                   <div className="flex items-center gap-2 mt-1 flex-wrap">
@@ -207,7 +207,7 @@ export default function ProjetsPage() {
                     <p className="text-xs text-muted mt-1.5 line-clamp-1">{p.description}</p>
                   )}
                   {p.etapes_total > 0 && (
-                    <div className="mt-2 h-1 bg-stone-100 rounded-full overflow-hidden">
+                    <div className="mt-2 h-1 bg-beige-100 rounded-full overflow-hidden">
                       <div
                         className={`h-full rounded-full transition-all ${pct === 100 ? 'bg-green-400' : 'bg-primary'}`}
                         style={{ width: `${pct}%` }}
@@ -224,7 +224,7 @@ export default function ProjetsPage() {
         {filtered.length === 0 && (
           <div className="text-center py-10 bg-surface border border-border rounded-2xl">
             <p className="text-3xl mb-2">📁</p>
-            <p className="text-sm font-medium text-stone-700">
+            <p className="text-sm font-medium text-ink">
               Aucun projet {tab !== 'Tous' ? tab.toLowerCase() : ''}
             </p>
             <p className="text-xs text-muted mt-1">Clique sur &quot;Nouveau&quot; pour en créer un</p>

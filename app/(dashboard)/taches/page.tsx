@@ -7,7 +7,7 @@ import type { Tache } from '@/lib/types'
 
 const PRIORITE = {
   haute:   { label: 'Haute',   dot: 'bg-red-400',     badge: 'bg-red-50 text-red-500 border-red-200' },
-  normale: { label: 'Normale', dot: 'bg-stone-300',   badge: 'bg-stone-50 text-stone-400 border-stone-200' },
+  normale: { label: 'Normale', dot: 'bg-border',      badge: 'bg-beige-50 text-muted border-border' },
   basse:   { label: 'Basse',   dot: 'bg-emerald-300', badge: 'bg-emerald-50 text-emerald-500 border-emerald-200' },
 }
 
@@ -26,7 +26,7 @@ function EcheanceBadge({ date }: { date: string }) {
     <span className={`text-xs px-2 py-0.5 rounded-full font-medium ${
       isOverdue ? 'bg-red-50 text-red-500' :
       isToday   ? 'bg-primary-light text-primary' :
-                  'bg-stone-50 text-stone-400'
+                  'bg-beige-50 text-muted'
     }`}>
       {formatEcheance(date)}
     </span>
@@ -54,7 +54,7 @@ function TaskRow({ tache, onToggle, onDelete }: TaskRowProps) {
         {tache.faite && <Check size={10} className="text-green-600" />}
       </button>
 
-      <span className={`flex-1 text-sm ${tache.faite ? 'line-through text-muted' : 'text-stone-700'}`}>
+      <span className={`flex-1 text-sm ${tache.faite ? 'line-through text-muted' : 'text-ink'}`}>
         {tache.texte}
       </span>
 
@@ -196,7 +196,7 @@ export default function TachesPage() {
     <div className="space-y-4">
       <div className="flex items-center justify-between">
         <div>
-          <h1 className="text-xl font-bold text-stone-800">Tâches</h1>
+          <h1 className="text-xl font-bold text-ink">Tâches</h1>
           <p className="text-xs text-muted mt-0.5">
             {pending.length} à faire · {done.length} terminée{done.length > 1 ? 's' : ''}
           </p>
@@ -233,7 +233,7 @@ export default function TachesPage() {
                   key={p}
                   onClick={() => setNewPriorite(p)}
                   className={`text-xs px-2.5 py-1.5 rounded-lg border transition font-medium ${
-                    newPriorite === p ? PRIORITE[p].badge : 'border-border text-muted hover:border-stone-300'
+                    newPriorite === p ? PRIORITE[p].badge : 'border-border text-muted hover:border-primary/30'
                   }`}
                 >
                   {PRIORITE[p].label}
@@ -290,7 +290,7 @@ export default function TachesPage() {
         {pending.length === 0 && (
           <div className="text-center py-6">
             <p className="text-3xl mb-2">✅</p>
-            <p className="text-sm font-medium text-stone-700">Tout est à jour !</p>
+            <p className="text-sm font-medium text-ink">Tout est à jour !</p>
             <p className="text-xs text-muted mt-1">Clique sur "Nouvelle" pour ajouter une tâche</p>
           </div>
         )}
