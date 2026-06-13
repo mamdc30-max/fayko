@@ -483,9 +483,12 @@ export default function FocusPage() {
       )}
 
 
+      {/* ── Panneau journée unifié ── */}
+      <div className="bg-surface rounded-2xl overflow-hidden divide-y divide-border/40">
+
       {/* ── 1b. Agenda Google du jour ── */}
       {(calEvents.length > 0 || calConfigured) && (
-        <section className="bg-surface border border-border rounded-2xl overflow-hidden">
+        <div>
           <div className="flex items-center justify-between px-4 py-3 border-b border-border">
             <h2 className="font-semibold text-stone-800 text-sm flex items-center gap-2">
               📅 Agenda du jour
@@ -541,11 +544,11 @@ export default function FocusPage() {
               ))}
             </div>
           )}
-        </section>
+        </div>
       )}
 
       {/* ── 2. Focus de la semaine ── */}
-      <section className="bg-surface border border-border rounded-2xl overflow-hidden">
+      <div>
         <div className="flex items-center justify-between px-4 py-3 border-b border-border">
           <h2 className="font-semibold text-stone-800 text-sm">📋 Focus de la semaine</h2>
           {priorites.length > 0 && (
@@ -603,11 +606,11 @@ export default function FocusPage() {
             </div>
           </div>
         )}
-      </section>
+      </div>
 
       {/* ── 3. Projets actifs ── */}
       {projets.length > 0 && (
-        <section className="space-y-2">
+        <div className="px-4 py-3 space-y-2">
           <div className="flex items-center justify-between">
             <h2 className="font-semibold text-stone-800 text-sm">📁 Projets actifs</h2>
             <Link href="/projets" className="text-xs text-primary font-medium">Voir tout</Link>
@@ -636,12 +639,12 @@ export default function FocusPage() {
               )
             })}
           </div>
-        </section>
+        </div>
       )}
 
       {/* ── 4. A faire ── */}
       {(agendaTaches.length > 0 || retard > 0) && (
-        <section id="taches-du-jour" className="space-y-2">
+        <div id="taches-du-jour" className="px-4 py-3 space-y-2">
           <div className="flex items-center justify-between">
             <h2 className="font-semibold text-stone-800 text-sm flex items-center gap-2">
               <CalendarDays size={15} className="text-primary" /> Aujourd&apos;hui
@@ -682,8 +685,10 @@ export default function FocusPage() {
               ))}
             </div>
           )}
-        </section>
+        </div>
       )}
+
+      </div>{/* ── /panneau journée ── */}
 
       {selectedTache && (
         <TacheModal
