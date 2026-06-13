@@ -213,13 +213,13 @@ export default function PipelinePage() {
       <div className="px-4 pt-6 pb-3 bg-beige sticky top-0 z-10 border-b border-border/40">
         <div className="flex items-center justify-between mb-4">
           <div>
-            <h1 className="text-xl font-bold text-stone-800">Pipeline</h1>
+            <h1 className="text-xl font-bold text-ink">Pipeline</h1>
             <p className="text-xs text-muted mt-0.5">{prospects.length} prospect{prospects.length > 1 ? 's' : ''} actifs</p>
           </div>
           <div className="flex items-center gap-2">
             <button
               onClick={() => setTemplatesOpen(true)}
-              className="flex items-center gap-1.5 bg-surface border border-border text-stone-700 text-sm font-semibold px-3 py-2 rounded-xl hover:bg-beige-50 transition"
+              className="flex items-center gap-1.5 bg-surface border border-border text-muted text-sm font-semibold px-3 py-2 rounded-xl hover:bg-beige-50 transition"
             >
               📝 Modèles
             </button>
@@ -234,12 +234,12 @@ export default function PipelinePage() {
             <button key={e.key} onClick={() => setActiveTab(e.key)}
               className={`shrink-0 flex items-center gap-1.5 px-3 py-1.5 rounded-full text-xs font-semibold transition ${
                 activeTab === e.key
-                  ? 'bg-stone-800 text-white'
-                  : 'bg-white text-muted border border-border hover:border-stone-300'
+                  ? 'bg-navy text-white'
+                  : 'bg-surface text-muted border border-border hover:border-primary/30'
               }`}>
               {e.label}
               <span className={`rounded-full px-1.5 text-[10px] font-bold ${
-                activeTab === e.key ? 'bg-white/20 text-white' : 'bg-stone-100 text-stone-600'
+                activeTab === e.key ? 'bg-white/20 text-white' : 'bg-beige-100 text-muted'
               }`}>{counts[e.key]}</span>
             </button>
           ))}
@@ -251,7 +251,7 @@ export default function PipelinePage() {
         {filtered.length === 0 ? (
           <div className="text-center py-14">
             <p className="text-4xl mb-3">🎯</p>
-            <p className="text-sm font-semibold text-stone-700">Aucun prospect ici</p>
+            <p className="text-sm font-semibold text-ink">Aucun prospect ici</p>
             <p className="text-xs text-muted mt-1.5">
               {activeTab === 'source'
                 ? "Les prospects qualifiés par l'agent Cowork apparaîtront ici"
@@ -265,7 +265,7 @@ export default function PipelinePage() {
             const stale     = isStale(p)
 
             return (
-              <div key={p.id} className={`bg-white rounded-2xl border-l-4 shadow-sm overflow-hidden ${
+              <div key={p.id} className={`bg-surface rounded-2xl border-l-4 shadow-card overflow-hidden ${
                 stale              ? 'border-l-amber-400' :
                 activeTab === 'client' ? 'border-l-green-500' : 'border-l-primary'
               }`}>
@@ -274,7 +274,7 @@ export default function PipelinePage() {
                   {/* Top */}
                   <div className="flex items-start justify-between gap-2 mb-2">
                     <div className="flex-1 min-w-0">
-                      <p className="font-bold text-stone-800 text-[15px] leading-tight">
+                      <p className="font-bold text-ink text-[15px] leading-tight">
                         {p.prenom || p.nom ? `${p.prenom} ${p.nom}`.trim() : p.entreprise}
                       </p>
                       {(p.prenom || p.nom) && p.entreprise && (
@@ -310,11 +310,11 @@ export default function PipelinePage() {
 
                   {/* Interactions */}
                   {pInter.length > 0 && (
-                    <div className="mb-3 space-y-1.5 border-t border-stone-50 pt-2 mt-2">
+                    <div className="mb-3 space-y-1.5 border-t border-border/30 pt-2 mt-2">
                       {pInter.slice(0, expanded ? undefined : 2).map(i => (
                         <div key={i.id} className="flex items-center gap-2">
                           <span className="text-xs">{INTERACTION_ICONS[i.type]}</span>
-                          <span className="text-xs font-medium text-stone-700 flex-1 truncate">{i.label || i.type}</span>
+                          <span className="text-xs font-medium text-ink flex-1 truncate">{i.label || i.type}</span>
                           <span className="text-[10px] text-muted shrink-0">{fmtDate(i.date)}</span>
                         </div>
                       ))}
@@ -329,9 +329,9 @@ export default function PipelinePage() {
 
                   {/* Message prepare (expanded) */}
                   {expanded && p.message_type && (
-                    <div className="mb-3 bg-stone-50 rounded-xl p-3 border border-stone-100">
+                    <div className="mb-3 bg-beige-50 rounded-xl p-3 border border-border/40">
                       <p className="text-[10px] text-muted font-bold uppercase tracking-wider mb-1.5">Message préparé</p>
-                      <p className="text-xs text-stone-700 leading-relaxed whitespace-pre-line">{p.message_type}</p>
+                      <p className="text-xs text-ink leading-relaxed whitespace-pre-line">{p.message_type}</p>
                     </div>
                   )}
 
@@ -351,8 +351,8 @@ export default function PipelinePage() {
                             onClick={() => changeStatut(p, e.key)}
                             className={`px-2.5 py-1.5 text-xs font-semibold rounded-xl border transition ${
                               p.statut === e.key
-                                ? 'bg-stone-800 text-white border-stone-800'
-                                : 'border-border text-stone-500 hover:border-stone-400 hover:text-stone-700'
+                                ? 'bg-navy text-white border-navy'
+                                : 'border-border text-muted hover:border-primary/30 hover:text-ink'
                             }`}
                           >
                             {e.label}
@@ -423,16 +423,16 @@ export default function PipelinePage() {
       {/* Modal — Nouvelle interaction */}
       {showAddInteraction && (
         <div className="fixed inset-0 bg-black/40 z-50 flex items-end justify-center">
-          <div className="bg-white w-full max-w-lg rounded-t-3xl p-6 space-y-4">
+          <div className="bg-surface w-full max-w-lg rounded-t-3xl p-6 space-y-4">
             <div className="flex items-center justify-between">
-              <h2 className="font-bold text-stone-800">Ajouter une interaction</h2>
+              <h2 className="font-bold text-ink">Ajouter une interaction</h2>
               <button onClick={() => setShowAddInteraction(null)} className="text-muted"><X size={20} /></button>
             </div>
             <div className="grid grid-cols-3 gap-2">
               {(['rdv', 'appel', 'message', 'relance', 'email', 'autre'] as InteractionType[]).map(t => (
                 <button key={t} onClick={() => setIform(f => ({ ...f, type: t }))}
                   className={`py-2.5 rounded-xl text-xs font-semibold border transition ${
-                    iform.type === t ? 'bg-primary text-white border-primary' : 'border-border text-stone-600 hover:border-stone-300'
+                    iform.type === t ? 'bg-primary text-white border-primary' : 'border-border text-muted hover:border-primary/30'
                   }`}>
                   {INTERACTION_ICONS[t]} {t}
                 </button>
@@ -466,9 +466,9 @@ export default function PipelinePage() {
       {/* Modal — Nouveau prospect */}
       {showAddProspect && (
         <div className="fixed inset-0 bg-black/40 z-50 flex items-end justify-center">
-          <div className="bg-white w-full max-w-lg rounded-t-3xl p-6 space-y-4 max-h-[88vh] overflow-y-auto">
+          <div className="bg-surface w-full max-w-lg rounded-t-3xl p-6 space-y-4 max-h-[88vh] overflow-y-auto">
             <div className="flex items-center justify-between">
-              <h2 className="font-bold text-stone-800">Nouveau prospect</h2>
+              <h2 className="font-bold text-ink">Nouveau prospect</h2>
               <button onClick={() => setShowAddProspect(false)} className="text-muted"><X size={20} /></button>
             </div>
             <div className="grid grid-cols-2 gap-3">
@@ -530,10 +530,10 @@ export default function PipelinePage() {
       {/* ── Modèles de messages ── */}
       {templatesOpen && (
         <div className="fixed inset-0 bg-black/40 z-50 flex items-end justify-center" onClick={() => setTemplatesOpen(false)}>
-          <div className="bg-white w-full max-w-lg rounded-t-3xl max-h-[88vh] overflow-y-auto" onClick={e => e.stopPropagation()}>
-            <div className="sticky top-0 bg-white border-b border-border px-6 py-4 flex items-center justify-between">
+          <div className="bg-surface w-full max-w-lg rounded-t-3xl max-h-[88vh] overflow-y-auto" onClick={e => e.stopPropagation()}>
+            <div className="sticky top-0 bg-surface border-b border-border px-6 py-4 flex items-center justify-between">
               <div>
-                <h2 className="font-bold text-stone-800">📝 Modèles de messages</h2>
+                <h2 className="font-bold text-ink">📝 Modèles de messages</h2>
                 <p className="text-xs text-muted mt-0.5">Copie et adapte selon le prospect</p>
               </div>
               <button onClick={() => setTemplatesOpen(false)} className="text-muted hover:text-stone-700 transition">
@@ -543,9 +543,9 @@ export default function PipelinePage() {
             <div className="p-4 space-y-3 pb-8">
               {MSG_TEMPLATES.map((tpl, idx) => (
                 <div key={idx} className="border border-border rounded-2xl overflow-hidden">
-                  <div className="flex items-center justify-between px-4 py-2.5 bg-stone-50 border-b border-border">
+                  <div className="flex items-center justify-between px-4 py-2.5 bg-beige-50 border-b border-border">
                     <div>
-                      <span className="text-sm font-semibold text-stone-700">{tpl.label}</span>
+                      <span className="text-sm font-semibold text-ink">{tpl.label}</span>
                       <div className="flex gap-1 mt-0.5">
                         {tpl.statuts.map(s => (
                           <span key={s} className="text-[10px] px-1.5 py-0.5 bg-primary/10 text-primary rounded-md font-medium capitalize">
@@ -574,7 +574,7 @@ export default function PipelinePage() {
                       {copiedId === idx ? <><Check size={12} /> Copié !</> : 'Copier'}
                     </button>
                   </div>
-                  <pre className="px-4 py-3 text-xs text-stone-600 whitespace-pre-wrap leading-relaxed font-sans">{tpl.contenu}</pre>
+                  <pre className="px-4 py-3 text-xs text-muted whitespace-pre-wrap leading-relaxed font-sans">{tpl.contenu}</pre>
                 </div>
               ))}
             </div>

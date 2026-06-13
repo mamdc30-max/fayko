@@ -53,7 +53,7 @@ export default function MissionsPage() {
       {/* Header */}
       <div className="flex items-center justify-between">
         <div>
-          <h1 className="text-xl font-bold text-stone-800">Missions d&eacute;tect&eacute;es</h1>
+          <h1 className="text-xl font-bold text-ink">Missions détectées</h1>
           <p className="text-sm text-muted mt-0.5">Veille automatique &mdash; chaque matin en semaine</p>
         </div>
         <button
@@ -75,7 +75,7 @@ export default function MissionsPage() {
           <div className="text-xs text-muted mt-0.5">En veille</div>
         </div>
         <div className="bg-surface border border-border rounded-2xl p-3 text-center">
-          <div className="text-2xl font-bold text-stone-700">{missions.length}</div>
+          <div className="text-2xl font-bold text-ink">{missions.length}</div>
           <div className="text-xs text-muted mt-0.5">Total</div>
         </div>
       </div>
@@ -89,7 +89,7 @@ export default function MissionsPage() {
             className={`px-3 py-1.5 rounded-lg text-xs font-medium transition ${
               filter === f
                 ? 'bg-primary text-white'
-                : 'bg-surface border border-border text-muted hover:text-stone-700'
+                : 'bg-surface border border-border text-muted hover:text-ink'
             }`}
           >
             {f === 'all' ? 'Toutes' : f === 'Urgente' ? '🔥 Urgentes' : '👀 En veille'}
@@ -103,7 +103,7 @@ export default function MissionsPage() {
       ) : filtered.length === 0 ? (
         <div className="text-center py-12 text-muted text-sm">
           <div className="text-4xl mb-3">🔍</div>
-          <p className="font-medium text-stone-700">Aucune mission pour l&apos;instant</p>
+          <p className="font-medium text-ink">Aucune mission pour l&apos;instant</p>
           <p className="text-xs mt-1 text-muted">
             La veille tourne chaque matin lun–ven via les alertes email.
           </p>
@@ -134,7 +134,7 @@ function MissionCard({ mission: m }: { mission: Mission }) {
             </span>
             <span className="text-[10px] text-muted">{m.source}</span>
           </div>
-          <h3 className="font-semibold text-stone-800 text-sm leading-snug">{m.titre}</h3>
+          <h3 className="font-semibold text-ink text-sm leading-snug">{m.titre}</h3>
           {m.entreprise && (
             <p className="text-xs text-muted mt-0.5">{m.entreprise}</p>
           )}
@@ -144,7 +144,7 @@ function MissionCard({ mission: m }: { mission: Mission }) {
           <span className={`text-xl font-bold ${
             m.score >= 7 ? 'text-red-500'
             : m.score >= 5 ? 'text-amber-500'
-            : 'text-stone-400'
+            : 'text-muted'
           }`}>
             {m.score}
           </span>
@@ -155,17 +155,17 @@ function MissionCard({ mission: m }: { mission: Mission }) {
       {/* Badges */}
       <div className="flex flex-wrap gap-1.5">
         {m.zone && (
-          <span className="text-[10px] bg-beige-50 border border-border px-2 py-0.5 rounded-lg text-stone-600">
+          <span className="text-[10px] bg-beige-50 border border-border px-2 py-0.5 rounded-lg text-muted">
             📍 {m.zone}
           </span>
         )}
         {m.tarif && m.tarif !== 'À négocier' && (
-          <span className="text-[10px] bg-beige-50 border border-border px-2 py-0.5 rounded-lg text-stone-600">
+          <span className="text-[10px] bg-beige-50 border border-border px-2 py-0.5 rounded-lg text-muted">
             💰 {m.tarif}
           </span>
         )}
         {m.duree && (
-          <span className="text-[10px] bg-beige-50 border border-border px-2 py-0.5 rounded-lg text-stone-600">
+          <span className="text-[10px] bg-beige-50 border border-border px-2 py-0.5 rounded-lg text-muted">
             ⏱ {m.duree}
           </span>
         )}
@@ -173,7 +173,7 @@ function MissionCard({ mission: m }: { mission: Mission }) {
 
       {/* Note Claude */}
       {m.note_claude && (
-        <p className="text-xs text-stone-500 leading-relaxed italic border-l-2 border-primary/20 pl-2.5">
+        <p className="text-xs text-muted leading-relaxed italic border-l-2 border-primary/20 pl-2.5">
           {m.note_claude}
         </p>
       )}

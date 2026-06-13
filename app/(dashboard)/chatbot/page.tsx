@@ -366,7 +366,7 @@ export default function ChatbotPage() {
       {/* Header */}
       <div className="flex items-center justify-between mb-3">
         <div>
-          <h1 className="text-xl font-bold text-stone-800">Qualification client</h1>
+          <h1 className="text-xl font-bold text-ink">Qualification client</h1>
           <p className="text-xs text-muted">Chatbot de qualification avant devis</p>
         </div>
         <div className="flex gap-2">
@@ -394,7 +394,7 @@ export default function ChatbotPage() {
           {recentSessions.map(s => (
             <button key={s.id} onClick={() => loadSession(s.id)}
               className={`w-full text-left px-3 py-2 rounded-xl border text-sm transition hover:border-primary/30 ${s.id === sessionId ? 'border-primary/30 bg-primary-light' : 'border-border'}`}>
-              <p className="text-stone-700 truncate">{s.preview || 'Session sans texte'}</p>
+              <p className="text-ink truncate">{s.preview || 'Session sans texte'}</p>
               <p className="text-xs text-muted mt-0.5">{formatDate(s.created_at)}</p>
             </button>
           ))}
@@ -445,7 +445,7 @@ export default function ChatbotPage() {
             <div className="flex items-center gap-2">
               <UserCircle2 size={16} className="text-primary shrink-0" />
               <div>
-                <p className="text-sm font-medium text-stone-800">{selectedClient.prenom} {selectedClient.nom}</p>
+                <p className="text-sm font-medium text-ink">{selectedClient.prenom} {selectedClient.nom}</p>
                 {selectedClient.marque && <p className="text-xs text-primary">{selectedClient.marque}</p>}
               </div>
             </div>
@@ -463,7 +463,7 @@ export default function ChatbotPage() {
             <div className={`max-w-[85%] rounded-2xl text-sm ${
               msg.role === 'user'
                 ? 'bg-primary text-white rounded-br-sm'
-                : 'bg-surface border border-border text-stone-800 rounded-bl-sm'
+                : 'bg-surface border border-border text-ink rounded-bl-sm'
             }`}>
               {typeof msg.content === 'string' ? (
                 <p className="px-4 py-3 whitespace-pre-wrap leading-relaxed">{msg.content}</p>
@@ -515,7 +515,7 @@ export default function ChatbotPage() {
               className={`flex-1 flex items-center justify-center gap-2 py-2.5 font-semibold text-sm rounded-xl transition border ${
                 saved
                   ? 'bg-green-100 border-green-200 text-green-700'
-                  : 'bg-surface border-border text-stone-700 hover:border-primary/30'
+                  : 'bg-surface border-border text-ink hover:border-primary/30'
               }`}
             >
               {saved ? <Check size={16} /> : <Save size={16} />}
@@ -531,7 +531,7 @@ export default function ChatbotPage() {
           <img src={pendingImage.preview} alt="À envoyer" className="h-20 rounded-xl border border-border object-cover" />
           <button
             onClick={() => setPendingImage(null)}
-            className="absolute -top-2 -right-2 bg-stone-700 text-white rounded-full w-5 h-5 flex items-center justify-center"
+            className="absolute -top-2 -right-2 bg-navy text-white rounded-full w-5 h-5 flex items-center justify-center"
           >
             <X size={12} />
           </button>

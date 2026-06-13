@@ -109,7 +109,7 @@ export default function VeillePage() {
       {/* Header */}
       <div className="flex items-start justify-between">
         <div>
-          <h1 className="text-xl font-bold text-stone-800">Veille hebdo</h1>
+          <h1 className="text-xl font-bold text-ink">Veille hebdo</h1>
           <p className="text-xs text-muted mt-0.5">
             {refreshMsg
             ? refreshMsg

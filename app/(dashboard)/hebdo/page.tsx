@@ -177,11 +177,11 @@ export default function HebdoPage() {
 
       {/* Header */}
       <div>
-        <h1 className="text-xl font-bold text-stone-800">Revue de la semaine</h1>
+        <h1 className="text-xl font-bold text-ink">Revue de la semaine</h1>
         <div className="flex items-center gap-3 mt-2">
-          <button onClick={prevWeek} className="text-muted hover:text-stone-700 transition p-1">‹</button>
+          <button onClick={prevWeek} className="text-muted hover:text-ink transition p-1">‹</button>
           <div className="flex-1 text-center">
-            <p className="text-sm font-semibold text-stone-800">{week}</p>
+            <p className="text-sm font-semibold text-ink">{week}</p>
             <p className="text-xs text-muted">{formatWeekLabel(week)}</p>
           </div>
           <button onClick={nextWeek} disabled={isCurrentWeek} className="text-muted hover:text-stone-700 disabled:opacity-30 transition p-1">›</button>

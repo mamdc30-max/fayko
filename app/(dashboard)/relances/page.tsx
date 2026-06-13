@@ -71,7 +71,7 @@ export default function RelancesPage() {
   return (
     <div className="space-y-5">
       <div>
-        <h1 className="text-xl font-bold text-stone-800">Relances</h1>
+        <h1 className="text-xl font-bold text-ink">Relances</h1>
         <p className="text-xs text-muted mt-0.5">Commandes sans réponse depuis plus de 7 jours</p>
       </div>
 
@@ -83,7 +83,7 @@ export default function RelancesPage() {
       {relances.length === 0 && effectuees.length === 0 && (
         <div className="bg-surface rounded-2xl border border-border p-8 text-center">
           <p className="text-4xl mb-3">✅</p>
-          <p className="font-semibold text-stone-800">Aucune relance en attente</p>
+          <p className="font-semibold text-ink">Aucune relance en attente</p>
           <p className="text-sm text-muted mt-1">Tous tes devis sont à jour.</p>
         </div>
       )}
@@ -95,7 +95,7 @@ export default function RelancesPage() {
             <div key={d.id} className="bg-primary-light border border-primary/20 rounded-2xl p-4 space-y-3">
               <div className="flex items-start justify-between">
                 <div>
-                  <p className="font-semibold text-stone-800 text-sm">{d.clients.prenom} {d.clients.nom}</p>
+                  <p className="font-semibold text-ink text-sm">{d.clients.prenom} {d.clients.nom}</p>
                   <p className="text-xs text-muted mt-0.5">{d.titre} • Envoyé le {formatDate(d.created_at)}</p>
                   <p className="text-sm font-medium text-primary mt-1">{formatPrice(d.total_ht)}</p>
                 </div>
@@ -114,7 +114,7 @@ export default function RelancesPage() {
               {template && (
                 <div className="bg-surface rounded-xl p-3 border border-border">
                   <p className="text-xs text-muted mb-2">Message de relance :</p>
-                  <pre className="text-xs text-stone-700 whitespace-pre-wrap font-sans leading-relaxed">
+                  <pre className="text-xs text-ink whitespace-pre-wrap font-sans leading-relaxed">
                     {applyTemplateVars(template.contenu, d.clients, d, settings.acompte_pourcentage)}
                   </pre>
                 </div>
@@ -127,7 +127,7 @@ export default function RelancesPage() {
                   {copied === d.id ? 'Copié !' : 'Copier le message'}
                 </button>
                 <button onClick={() => handleMarkDone(d)}
-                  className="flex items-center justify-center gap-1.5 bg-surface border border-border text-stone-700 text-sm py-2.5 px-4 rounded-xl font-medium hover:border-green-300 hover:text-green-600 transition">
+                  className="flex items-center justify-center gap-1.5 bg-surface border border-border text-ink text-sm py-2.5 px-4 rounded-xl font-medium hover:border-green-300 hover:text-green-600 transition">
                   <Check size={16} />
                   Effectuée
                 </button>
@@ -144,7 +144,7 @@ export default function RelancesPage() {
       {/* Relances effectuées */}
       {effectuees.length > 0 && (
         <div>
-          <h2 className="font-semibold text-stone-700 text-sm mb-3 flex items-center gap-2">
+          <h2 className="font-semibold text-ink text-sm mb-3 flex items-center gap-2">
             <Check size={14} className="text-green-500" /> Relances effectuées ({effectuees.length})
           </h2>
           <div className="space-y-2">
@@ -152,7 +152,7 @@ export default function RelancesPage() {
               <Link key={d.id} href={`/devis/${d.id}`}
                 className="flex items-center justify-between bg-surface rounded-2xl px-4 py-3 border border-border opacity-60">
                 <div>
-                  <p className="text-sm font-medium text-stone-700">{d.clients.prenom} {d.clients.nom}</p>
+                  <p className="text-sm font-medium text-ink">{d.clients.prenom} {d.clients.nom}</p>
                   <p className="text-xs text-muted">{d.titre}</p>
                 </div>
                 <span className="text-sm text-muted">{formatPrice(d.total_ht)}</span>
