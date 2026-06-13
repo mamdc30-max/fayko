@@ -36,25 +36,25 @@ interface IASuggestion {
 }
 
 const STATUT_CONFIG: Record<IdeaStatut, { label: string; badge: string }> = {
-  capture:           { label: 'Capturée',         badge: 'bg-stone-100 text-stone-500' },
+  capture:           { label: 'Capturée',         badge: 'bg-beige-100 text-muted' },
   a_challenger:      { label: 'A challenger',      badge: 'bg-amber-50 text-amber-600' },
   en_evaluation:     { label: 'En evaluation',     badge: 'bg-blue-50 text-blue-600' },
   liee_projet:       { label: 'Liee a un projet',  badge: 'bg-violet-50 text-violet-600' },
   transformee_tache: { label: 'Tache creee',       badge: 'bg-green-50 text-green-600' },
   transformee_projet:{ label: 'Projet cree',       badge: 'bg-green-50 text-green-600' },
-  en_attente:        { label: 'En attente',        badge: 'bg-stone-50 text-stone-400' },
-  abandonnee:        { label: 'Abandonnee',        badge: 'bg-stone-50 text-stone-400' },
+  en_attente:        { label: 'En attente',        badge: 'bg-beige-50 text-muted/70' },
+  abandonnee:        { label: 'Abandonnee',        badge: 'bg-beige-50 text-muted/70' },
 }
 
 const STATUS_DOT: Record<IdeaStatut, string> = {
-  capture:            'bg-stone-300',
+  capture:            'bg-border',
   a_challenger:       'bg-amber-400',
   en_evaluation:      'bg-blue-400',
   liee_projet:        'bg-violet-400',
   transformee_tache:  'bg-green-400',
   transformee_projet: 'bg-green-400',
-  en_attente:         'bg-stone-200',
-  abandonnee:         'bg-stone-200',
+  en_attente:         'bg-border/50',
+  abandonnee:         'bg-border/50',
 }
 
 const ACTIVE_STATUTS: IdeaStatut[] = ['capture', 'a_challenger', 'en_evaluation', 'liee_projet']
@@ -237,7 +237,7 @@ export default function IdeesPage() {
 
       <div className="flex items-center justify-between">
         <div>
-          <h1 className="text-xl font-bold text-stone-800">Idees</h1>
+          <h1 className="text-xl font-bold text-ink">Idées</h1>
           <p className="text-xs text-muted mt-0.5">{active.length} active{active.length !== 1 ? 's' : ''}</p>
         </div>
         <button
@@ -294,11 +294,11 @@ export default function IdeesPage() {
                 onClick={() => setExpanded(e => ({ ...e, [idee.id]: !e[idee.id] }))}
                 className="w-full flex items-center gap-3 px-4 py-3 text-left hover:bg-beige-50 transition"
               >
-                <span className={`w-2 h-2 rounded-full shrink-0 ${STATUS_DOT[idee.statut] ?? 'bg-stone-300'}`} />
-                <span className="flex-1 text-sm text-stone-800 leading-snug line-clamp-1">{idee.texte}</span>
+                <span className={`w-2 h-2 rounded-full shrink-0 ${STATUS_DOT[idee.statut] ?? 'bg-border'}`} />
+                <span className="flex-1 text-sm text-ink leading-snug line-clamp-1">{idee.texte}</span>
                 {isOpen
-                  ? <ChevronUp size={14} className="text-stone-300 shrink-0" />
-                  : <ChevronDown size={14} className="text-stone-300 shrink-0" />}
+                  ? <ChevronUp size={14} className="text-muted shrink-0" />
+                  : <ChevronDown size={14} className="text-muted shrink-0" />}
               </button>
 
               {/* Détail — visible uniquement au clic */}
@@ -329,12 +329,12 @@ export default function IdeesPage() {
                         </div>
                       ) : showPicker[idee.id] ? (
                         /* Picker ouvert — liste tous les projets */
-                        <div className="bg-white border border-primary/30 rounded-xl overflow-hidden shadow-card">
+                        <div className="bg-surface border border-primary/30 rounded-xl overflow-hidden shadow-card">
                           <div className="px-3 py-2 border-b border-border flex items-center justify-between">
-                            <span className="text-xs font-semibold text-stone-700">Lier à un projet :</span>
+                            <span className="text-xs font-semibold text-ink">Lier à un projet :</span>
                             <button
                               onClick={() => setShowPicker(p => ({ ...p, [idee.id]: false }))}
-                              className="text-xs text-muted hover:text-stone-700 transition"
+                              className="text-xs text-muted hover:text-ink transition"
                             >✕</button>
                           </div>
                           <div className="max-h-48 overflow-y-auto">
@@ -344,7 +344,7 @@ export default function IdeesPage() {
                               <button
                                 key={p.id}
                                 onClick={() => { linkProjet(idee.id, p.id); setShowPicker(prev => ({ ...prev, [idee.id]: false })); dismissSuggestion(idee.id) }}
-                                className="w-full text-left px-3 py-2.5 text-sm text-stone-700 hover:bg-primary-light hover:text-primary transition flex items-center gap-2"
+                                className="w-full text-left px-3 py-2.5 text-sm text-ink hover:bg-primary-light hover:text-primary transition flex items-center gap-2"
                               >
                                 <span className="w-1.5 h-1.5 rounded-full bg-primary/40 shrink-0" />
                                 {p.nom}
@@ -430,7 +430,7 @@ export default function IdeesPage() {
                                 <div className={`max-w-[85%] px-3 py-2 rounded-2xl text-xs leading-relaxed ${
                                   msg.role === 'user'
                                     ? 'bg-primary text-white'
-                                    : 'bg-white border border-amber-200 text-stone-700'
+                                    : 'bg-beige-50 border border-amber-200 text-ink'
                                 }`}>
                                   {msg.content}
                                 </div>
@@ -525,7 +525,7 @@ export default function IdeesPage() {
                           href={notionUrls[idee.id]}
                           target="_blank"
                           rel="noopener noreferrer"
-                          className="flex items-center gap-1 text-xs text-stone-400 hover:text-stone-600 transition"
+                          className="flex items-center gap-1 text-xs text-muted hover:text-ink transition"
                         >
                           <ExternalLink size={12} /> Voir sur Notion ✓
                         </a>
@@ -533,7 +533,7 @@ export default function IdeesPage() {
                         <button
                           onClick={() => syncToNotion(idee)}
                           disabled={notionSyncing[idee.id]}
-                          className="flex items-center gap-1 text-xs text-stone-400 hover:text-stone-700 border border-stone-200 hover:border-stone-400 px-2 py-1 rounded-lg transition disabled:opacity-40"
+                          className="flex items-center gap-1 text-xs text-muted hover:text-ink border border-border hover:border-primary/30 px-2 py-1 rounded-lg transition disabled:opacity-40"
                         >
                           {notionSyncing[idee.id] ? '⏳ Envoi…' : '📎 Archiver sur Notion'}
                         </button>
@@ -557,7 +557,7 @@ export default function IdeesPage() {
         {active.length === 0 && !showForm && (
           <div className="text-center py-10 bg-surface border border-border rounded-2xl">
             <p className="text-3xl mb-2">💡</p>
-            <p className="text-sm font-medium text-stone-700">Aucune idée en cours</p>
+            <p className="text-sm font-medium text-ink">Aucune idée en cours</p>
             <p className="text-xs text-muted mt-1">Clique sur "Capturer" pour noter une idée</p>
           </div>
         )}
@@ -578,7 +578,7 @@ export default function IdeesPage() {
             <div className="mt-2 space-y-2">
               {done.map(idee => (
                 <div key={idee.id} className="flex items-center gap-3 px-4 py-2.5 bg-surface border border-border rounded-xl opacity-50 group">
-                  <span className={`w-2 h-2 rounded-full shrink-0 ${STATUS_DOT[idee.statut] ?? 'bg-stone-200'}`} />
+                  <span className={`w-2 h-2 rounded-full shrink-0 ${STATUS_DOT[idee.statut] ?? 'bg-border/50'}`} />
                   <span className="flex-1 text-sm text-muted line-clamp-1">{idee.texte}</span>
                   <button onClick={() => remove(idee.id)} className="opacity-0 group-hover:opacity-100 p-1 text-muted hover:text-red-400 transition shrink-0">
                     <Trash2 size={12} />
