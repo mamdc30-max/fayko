@@ -6,7 +6,7 @@ import { Plus, Check, Trash2, ArrowRight, Search } from 'lucide-react'
 import type { ContactReseau, ContactQualification } from '@/lib/types'
 
 const QUAL_CONFIG: Record<ContactQualification, { label: string; badge: string; dot: string }> = {
-  a_qualifier:  { label: 'A qualifier',  badge: 'bg-stone-100 text-stone-500',    dot: 'bg-stone-300' },
+  a_qualifier:  { label: 'A qualifier',  badge: 'bg-beige-100 text-muted',        dot: 'bg-border' },
   prospect:     { label: 'Prospect',     badge: 'bg-orange-50 text-orange-600',   dot: 'bg-orange-400' },
   prestataire:  { label: 'Prestataire',  badge: 'bg-blue-50 text-blue-600',       dot: 'bg-blue-400' },
   partenaire:   { label: 'Partenaire',   badge: 'bg-violet-50 text-violet-600',   dot: 'bg-violet-400' },
@@ -113,7 +113,7 @@ export default function ReseauPage() {
       {/* Header */}
       <div className="flex items-center justify-between">
         <div>
-          <h1 className="text-xl font-bold text-stone-800">Réseau</h1>
+          <h1 className="text-xl font-bold text-ink">Réseau</h1>
           <p className="text-xs text-muted mt-0.5">
             {contacts.length} contact{contacts.length !== 1 ? 's' : ''}
             {toQualify > 0 && <span className="text-amber-600 font-medium"> · {toQualify} à qualifier</span>}
@@ -132,7 +132,7 @@ export default function ReseauPage() {
         <button
           onClick={() => setView('qualification')}
           className={`flex-1 text-xs font-semibold py-2.5 transition ${
-            view === 'qualification' ? 'bg-stone-800 text-white' : 'text-muted hover:bg-beige-50'
+            view === 'qualification' ? 'bg-navy text-white' : 'text-muted hover:bg-beige-50'
           }`}
         >
           Qualification
@@ -140,7 +140,7 @@ export default function ReseauPage() {
         <button
           onClick={() => setView('annuaire')}
           className={`flex-1 text-xs font-semibold py-2.5 transition ${
-            view === 'annuaire' ? 'bg-stone-800 text-white' : 'text-muted hover:bg-beige-50'
+            view === 'annuaire' ? 'bg-navy text-white' : 'text-muted hover:bg-beige-50'
           }`}
         >
           Annuaire
@@ -227,7 +227,7 @@ export default function ReseauPage() {
                 key={t.key}
                 onClick={() => setTab(t.key)}
                 className={`shrink-0 text-xs px-3 py-2 rounded-xl font-medium transition ${
-                  tab === t.key ? 'bg-primary text-white' : 'bg-surface border border-border text-muted hover:text-stone-700'
+                  tab === t.key ? 'bg-primary text-white' : 'bg-surface border border-border text-muted hover:text-ink'
                 }`}
               >
                 {t.label}
@@ -254,7 +254,7 @@ export default function ReseauPage() {
                     <div className={`w-2 h-2 rounded-full shrink-0 ${cfg.dot}`} />
                     <div className="flex-1 min-w-0">
                       <div className="flex items-center gap-2 flex-wrap">
-                        <span className="text-sm font-semibold text-stone-800">{fullName}</span>
+                        <span className="text-sm font-semibold text-ink">{fullName}</span>
                         {c.entreprise && <span className="text-xs text-muted">· {c.entreprise}</span>}
                         {c.converti && (
                           <span className="text-[10px] bg-green-50 text-green-600 px-1.5 py-0.5 rounded-md">Dans le pipeline</span>
@@ -270,7 +270,7 @@ export default function ReseauPage() {
                   {isOpen && (
                     <div className="border-t border-border p-4 space-y-3">
                       {c.sujet && (
-                        <p className="text-sm text-stone-600 leading-relaxed">{c.sujet}</p>
+                        <p className="text-sm text-muted leading-relaxed">{c.sujet}</p>
                       )}
 
                       {!c.converti && (
@@ -326,7 +326,7 @@ export default function ReseauPage() {
             {filtered.length === 0 && (
               <div className="text-center py-10 bg-surface border border-border rounded-2xl">
                 <p className="text-3xl mb-2">🤝</p>
-                <p className="text-sm font-medium text-stone-700">
+                <p className="text-sm font-medium text-ink">
                   {tab === 'tous'
                     ? 'Aucun contact dans le réseau'
                     : `Aucun contact "${FILTER_TABS.find(t => t.key === tab)?.label}"`}
@@ -384,7 +384,7 @@ export default function ReseauPage() {
                         <div key={c.id} className="bg-surface border border-border rounded-2xl p-4">
                           <div className="flex items-start justify-between gap-2">
                             <div className="flex-1 min-w-0">
-                              <p className="text-sm font-bold text-stone-800 leading-tight">
+                              <p className="text-sm font-bold text-ink leading-tight">
                                 {[c.prenom, c.nom].filter(Boolean).join(' ')}
                               </p>
                               {c.entreprise && (

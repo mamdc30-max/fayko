@@ -143,7 +143,7 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
           'flex items-center gap-3 px-3 py-2.5 rounded-xl text-sm font-medium transition',
           pathname === href
             ? 'bg-primary-light text-primary'
-            : 'text-muted hover:bg-beige-100 hover:text-stone-800'
+            : 'text-muted hover:bg-beige-100 hover:text-ink'
         )}
       >
         <Icon size={18} />
@@ -305,13 +305,13 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
                 className="bg-surface w-full max-w-lg rounded-t-3xl p-6 space-y-4"
                 onClick={e => e.stopPropagation()}
               >
-                <div className="w-10 h-1 bg-stone-200 rounded-full mx-auto" />
-                <h2 className="font-bold text-stone-800 text-center text-base">Capture rapide</h2>
+                <div className="w-10 h-1 bg-border rounded-full mx-auto" />
+                <h2 className="font-bold text-ink text-center text-base">Capture rapide</h2>
 
                 {quickSuccess ? (
                   <div className="text-center py-6 space-y-3">
                     <p className="text-5xl">{quickSuccess === 'tache' ? '✅' : '💡'}</p>
-                    <p className="font-bold text-stone-800 text-base">
+                    <p className="font-bold text-ink text-base">
                       {quickSuccess === 'tache' ? 'Tâche ajoutée !' : 'Idée capturée !'}
                     </p>
                     <p className="text-sm text-muted">
@@ -334,7 +334,7 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
                       className="flex flex-col items-center gap-2 p-5 border-2 border-border rounded-2xl hover:border-primary/40 hover:bg-primary-light transition"
                     >
                       <span className="text-3xl">✅</span>
-                      <span className="font-bold text-stone-700 text-sm">Tâche</span>
+                      <span className="font-bold text-ink text-sm">Tâche</span>
                       <span className="text-xs text-muted text-center">À faire aujourd'hui</span>
                     </button>
                     <button
@@ -342,7 +342,7 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
                       className="flex flex-col items-center gap-2 p-5 border-2 border-border rounded-2xl hover:border-primary/40 hover:bg-primary-light transition"
                     >
                       <span className="text-3xl">💡</span>
-                      <span className="font-bold text-stone-700 text-sm">Idée</span>
+                      <span className="font-bold text-ink text-sm">Idée</span>
                       <span className="text-xs text-muted text-center">Capturer une idée</span>
                     </button>
                   </div>
@@ -373,9 +373,9 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
                               className={`flex-1 py-2 rounded-xl text-xs font-bold border transition ${
                                 quickPrio === p
                                   ? p === 'haute'   ? 'bg-red-500 text-white border-red-500'
-                                  : p === 'normale' ? 'bg-stone-600 text-white border-stone-600'
-                                  :                   'bg-stone-200 text-stone-600 border-stone-200'
-                                  : 'border-border text-muted hover:border-stone-300'
+                                  : p === 'normale' ? 'bg-navy text-white border-navy'
+                                  :                   'bg-beige-100 text-muted border-border'
+                                  : 'border-border text-muted hover:border-primary/20'
                               }`}
                             >
                               {p === 'haute' ? 'Haute' : p === 'normale' ? 'Normale' : 'Basse'}
@@ -386,7 +386,7 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
                           <select
                             value={quickProjetId}
                             onChange={e => setQuickProjetId(e.target.value)}
-                            className="w-full border border-border rounded-xl px-3 py-2.5 text-sm text-stone-700 bg-beige-50 focus:outline-none focus:ring-2 focus:ring-primary/30"
+                            className="w-full border border-border rounded-xl px-3 py-2.5 text-sm text-ink bg-beige-50 focus:outline-none focus:ring-2 focus:ring-primary/30"
                           >
                             <option value="">— Aucun projet</option>
                             {quickProjets.map(p => (
