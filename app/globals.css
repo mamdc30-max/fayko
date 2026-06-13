@@ -12,11 +12,11 @@
   --ink:          #1B2540;
   --paper:        #FFD7BD;
   --sand:         #FBC8A8;
-  --card:         #FFFFFF;
+  --card:         #FFF7F2;
   --warm:         #7E756C;
   --line:         #E4DBCC;
-  --shadow-card:  0 4px 24px rgba(30,42,79,.12);
-  --shadow-hover: 0 8px 32px rgba(30,42,79,.20);
+  --shadow-card:  0 2px 16px rgba(191,73,44,.07);
+  --shadow-hover: 0 6px 28px rgba(191,73,44,.13);
 }
 
 /* ── Base ────────────────────────────────────────────────────────────────── */

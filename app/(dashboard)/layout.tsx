@@ -302,7 +302,7 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
               onClick={() => setQuickOpen(false)}
             >
               <div
-                className="bg-white w-full max-w-lg rounded-t-3xl p-6 space-y-4"
+                className="bg-surface w-full max-w-lg rounded-t-3xl p-6 space-y-4"
                 onClick={e => e.stopPropagation()}
               >
                 <div className="w-10 h-1 bg-stone-200 rounded-full mx-auto" />

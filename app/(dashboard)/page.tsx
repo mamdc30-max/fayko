@@ -355,8 +355,8 @@ export default function FocusPage() {
 
       {/* ── KPIs pipeline ── */}
       {kpis && (
-        <div className="grid grid-cols-3 gap-2">
-          <div className="bg-surface border border-border rounded-2xl px-3 py-3 text-center">
+        <div className="bg-beige-50 rounded-2xl grid grid-cols-3 divide-x divide-border">
+          <div className="px-3 py-3 text-center">
             <p className="text-xs text-muted mb-0.5">Pipeline</p>
             <p className="text-base font-bold text-orange-500">
               {kpis.pipeline >= 1000
@@ -365,11 +365,11 @@ export default function FocusPage() {
               <span className="text-xs font-normal ml-0.5">€</span>
             </p>
           </div>
-          <div className="bg-surface border border-border rounded-2xl px-3 py-3 text-center">
+          <div className="px-3 py-3 text-center">
             <p className="text-xs text-muted mb-0.5">Prospects</p>
             <p className="text-base font-bold text-primary">{kpis.prospects}</p>
           </div>
-          <div className="bg-surface border border-border rounded-2xl px-3 py-3 text-center">
+          <div className="px-3 py-3 text-center">
             <p className="text-xs text-muted mb-0.5">Projets</p>
             <p className="text-base font-bold text-blue-500">{kpis.projets}</p>
           </div>
