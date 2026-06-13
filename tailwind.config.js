@@ -28,8 +28,8 @@ module.exports = {
           200: '#F5B890',       // sand foncé
         },
         // ── Composants ────────────────────────────────────────────────────
-        surface: '#FFF7F2',     // card warm
-        border:  '#E8DECE',     // line warm
+        surface: '#FFF0E6',     // card — beige chaud, harmonieux avec fond
+        border:  '#E0CEBC',     // line warm
         muted:   '#7E756C',     // warm — texte secondaire
         // ── Tokens portfolio complets ────────────────────────────────────
         terra:        '#BF492C',
@@ -41,7 +41,7 @@ module.exports = {
         sand:         '#FBC8A8',
         warm:         '#7E756C',
         line:         '#E4DBCC',
-        card:         '#FFF7F2',
+        card:         '#FFF0E6',
       },
       fontFamily: {
         sans:    ['"Hanken Grotesk"', 'system-ui', 'sans-serif'],

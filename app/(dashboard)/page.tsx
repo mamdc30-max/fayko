@@ -595,7 +595,7 @@ export default function FocusPage() {
         </div>
         {priorites.length > 0 && (
           <div className="px-4 pb-3">
-            <div className="h-1 bg-stone-100 rounded-full overflow-hidden">
+            <div className="h-1 bg-beige-100 rounded-full overflow-hidden">
               <div
                 className={`h-full rounded-full transition-all ${cochees === priorites.length ? 'bg-green-400' : 'bg-primary'}`}
                 style={{ width: `${priorites.length ? Math.round((cochees / priorites.length) * 100) : 0}%` }}
@@ -618,13 +618,13 @@ export default function FocusPage() {
               const dot = TYPE_DOT[p.type] ?? 'bg-stone-300'
               return (
                 <Link key={p.id} href={`/projets/${p.id}`}
-                  className="flex items-center gap-3 bg-surface border border-border rounded-xl px-3 py-3 hover:border-primary/30 transition">
+                  className="flex items-center gap-3 rounded-xl px-3 py-3 border border-border/50 hover:border-primary/30 hover:bg-primary-light/40 transition">
                   <div className={`w-2 h-2 rounded-full shrink-0 ${dot}`} />
                   <div className="flex-1 min-w-0">
                     <p className="text-sm font-medium text-stone-800 truncate">{p.nom}</p>
                     {p.etapes_total > 0 && (
                       <div className="flex items-center gap-2 mt-1">
-                        <div className="flex-1 h-1 bg-stone-100 rounded-full overflow-hidden">
+                        <div className="flex-1 h-1 bg-beige-100 rounded-full overflow-hidden">
                           <div className={`h-full rounded-full ${pct === 100 ? 'bg-green-400' : 'bg-primary'}`} style={{ width: `${pct}%` }} />
                         </div>
                         <span className="text-[10px] text-muted shrink-0">{p.etapes_done}/{p.etapes_total}</span>
@@ -666,7 +666,7 @@ export default function FocusPage() {
                 <button
                   key={t.id}
                   onClick={() => setSelectedTache(t)}
-                  className="w-full flex items-center gap-3 bg-surface rounded-xl px-3 py-2.5 border border-border hover:border-primary/30 hover:bg-beige-50 transition text-left"
+                  className="w-full flex items-center gap-3 rounded-xl px-3 py-2.5 border border-border/50 hover:border-primary/30 hover:bg-primary-light/40 transition text-left"
                 >
                   <PrioDot p={t.priorite} />
                   <div className="flex-1 min-w-0">
@@ -705,7 +705,7 @@ export default function FocusPage() {
       {autoLogs.length > 0 && (
         <section className="space-y-1.5">
           <h2 className="text-xs text-muted font-semibold uppercase tracking-wide">⚙️ Automations</h2>
-          <div className="bg-surface rounded-2xl border border-border divide-y divide-border">
+          <div className="rounded-2xl border border-border/40 divide-y divide-border/40">
             {autoLogs.map(log => {
               const icon  = log.status === 'success' ? '✅' : log.status === 'partial' ? '⚠️' : '❌'
               const label = ({ scan_crm: 'Scan CRM', brief_agenda: 'Brief agenda', veille_hebdo: 'Veille hebdo' } as Record<string, string>)[log.task_name] ?? log.task_name
