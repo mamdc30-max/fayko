@@ -8,7 +8,7 @@ import { UserContext } from '@/lib/user-context'
 import {
   Home, PlusCircle, Clock, Bell, Settings, LogOut, Menu, X, Plus, Search,
   Package, Users2, Network, FolderKanban, Lightbulb, CalendarCheck, Briefcase,
-  CheckSquare, CalendarDays, Rss, ExternalLink,
+  CheckSquare, CalendarDays, Rss, ExternalLink, GraduationCap,
 } from 'lucide-react'
 import { cn } from '@/lib/utils'
 import SearchModal from '@/components/SearchModal'
@@ -20,6 +20,7 @@ const ADMIN_NAV = [
   { href: '/prospects',  label: 'Prospects', icon: Users2 },
   { href: '/reseau',     label: 'Réseau',    icon: Network },
   { href: '/hebdo',      label: 'Hebdo',     icon: CalendarCheck },
+  { href: '/lab',        label: 'Lab',       icon: GraduationCap },
   { href: '/parametres', label: 'Paramètres',icon: Settings },
 ]
 

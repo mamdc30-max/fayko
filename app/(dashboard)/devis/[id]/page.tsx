@@ -17,7 +17,7 @@ export default function DevisFichePage() {
 
   const [devis, setDevis] = useState<Devis | null>(null)
   const [client, setClient] = useState<Client | null>(null)
-  const [settings, setSettings] = useState<Settings>({ id: 1, acompte_pourcentage: 50 })
+  const [settings, setSettings] = useState<Settings>({ id: 1, acompte_pourcentage: 50, gcal_ics_url: null })
   const [templates, setTemplates] = useState<Template[]>([])
   const [loading, setLoading] = useState(true)
 

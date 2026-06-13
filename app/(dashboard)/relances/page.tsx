@@ -13,7 +13,7 @@ export default function RelancesPage() {
   const [relances, setRelances] = useState<DevisAvecClient[]>([])
   const [effectuees, setEffectuees] = useState<DevisAvecClient[]>([])
   const [template, setTemplate] = useState<Template | null>(null)
-  const [settings, setSettings] = useState<Settings>({ id: 1, acompte_pourcentage: 50 })
+  const [settings, setSettings] = useState<Settings>({ id: 1, acompte_pourcentage: 50, gcal_ics_url: null })
   const [loading, setLoading] = useState(true)
   const [copied, setCopied] = useState<string | null>(null)
   const [done, setDone] = useState<Record<string, boolean>>({})

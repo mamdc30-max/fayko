@@ -11,7 +11,7 @@ export default function ParametresPage() {
   const { isAdmin } = useUserContext()
   const [forfaits, setForfaits] = useState<Forfait[]>([])
   const [elements, setElements] = useState<ElementCarte[]>([])
-  const [settings, setSettings] = useState<Settings>({ id: 1, acompte_pourcentage: 50 })
+  const [settings, setSettings] = useState<Settings>({ id: 1, acompte_pourcentage: 50, gcal_ics_url: null })
   const [loading, setLoading] = useState(true)
 
   // Forfait / article form

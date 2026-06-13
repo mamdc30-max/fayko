@@ -16,7 +16,7 @@ export default function NewDevisPage() {
   const [clients, setClients] = useState<Client[]>([])
   const [forfaits, setForfaits] = useState<Forfait[]>([])
   const [elements, setElements] = useState<ElementCarte[]>([])
-  const [settings, setSettings] = useState<Settings>({ id: 1, acompte_pourcentage: 50 })
+  const [settings, setSettings] = useState<Settings>({ id: 1, acompte_pourcentage: 50, gcal_ics_url: null })
 
   // Form state
   const [clientSearch, setClientSearch] = useState('')
