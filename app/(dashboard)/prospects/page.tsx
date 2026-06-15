@@ -247,7 +247,7 @@ export default function PipelinePage() {
       </div>
 
       {/* List */}
-      <div className="px-4 pt-3 pb-24 space-y-3">
+      <div className="px-4 pt-3 pb-24">
         {filtered.length === 0 ? (
           <div className="text-center py-14">
             <p className="text-4xl mb-3">🎯</p>
@@ -259,13 +259,14 @@ export default function PipelinePage() {
             </p>
           </div>
         ) : (
-          filtered.map(p => {
+          <div className="bg-surface border border-border rounded-2xl overflow-hidden divide-y divide-border/40">
+          {filtered.map(p => {
             const pInter    = interactions[p.id] || []
             const expanded  = expandedId === p.id
             const stale     = isStale(p)
 
             return (
-              <div key={p.id} className={`bg-surface rounded-2xl border-l-4 shadow-card overflow-hidden ${
+              <div key={p.id} className={`border-l-4 ${
                 stale              ? 'border-l-amber-400' :
                 activeTab === 'client' ? 'border-l-green-500' : 'border-l-primary'
               }`}>
@@ -416,7 +417,8 @@ export default function PipelinePage() {
                 </div>
               </div>
             )
-          })
+          })}
+          </div>
         )}
       </div>
 

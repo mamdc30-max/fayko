@@ -178,7 +178,16 @@ export default function ProjetsPage() {
       </div>
 
       {/* List */}
-      <div className="space-y-2">
+      {filtered.length === 0 ? (
+        <div className="text-center py-10 bg-surface border border-border rounded-2xl">
+          <p className="text-3xl mb-2">📁</p>
+          <p className="text-sm font-medium text-ink">
+            Aucun projet {tab !== 'Tous' ? tab.toLowerCase() : ''}
+          </p>
+          <p className="text-xs text-muted mt-1">Clique sur &quot;Nouveau&quot; pour en créer un</p>
+        </div>
+      ) : (
+        <div className="bg-surface border border-border rounded-2xl overflow-hidden divide-y divide-border/40">
         {filtered.map(p => {
           const cfg    = TYPE_CONFIG[p.type]
           const statut = STATUT_CONFIG[p.statut]
@@ -187,7 +196,7 @@ export default function ProjetsPage() {
             <Link
               key={p.id}
               href={`/projets/${p.id}`}
-              className="block bg-surface border border-border rounded-2xl p-4 hover:border-primary/30 transition group"
+              className="block p-4 hover:bg-beige-50 transition group"
             >
               <div className="flex items-start gap-3">
                 <div className={`w-2 h-2 rounded-full mt-2 shrink-0 ${cfg.dot}`} />
@@ -221,16 +230,8 @@ export default function ProjetsPage() {
           )
         })}
 
-        {filtered.length === 0 && (
-          <div className="text-center py-10 bg-surface border border-border rounded-2xl">
-            <p className="text-3xl mb-2">📁</p>
-            <p className="text-sm font-medium text-ink">
-              Aucun projet {tab !== 'Tous' ? tab.toLowerCase() : ''}
-            </p>
-            <p className="text-xs text-muted mt-1">Clique sur &quot;Nouveau&quot; pour en créer un</p>
-          </div>
-        )}
-      </div>
+        </div>
+      )}
 
       {hasArchived && (
         <button

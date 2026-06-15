@@ -278,7 +278,14 @@ export default function IdeesPage() {
       )}
 
       {/* Active ideas */}
-      <div className="space-y-2">
+      {active.length === 0 && !showForm ? (
+        <div className="text-center py-10 bg-surface border border-border rounded-2xl">
+          <p className="text-3xl mb-2">💡</p>
+          <p className="text-sm font-medium text-ink">Aucune idée en cours</p>
+          <p className="text-xs text-muted mt-1">Clique sur &quot;Capturer&quot; pour noter une idée</p>
+        </div>
+      ) : active.length > 0 ? (
+        <div className="bg-surface border border-border rounded-2xl overflow-hidden divide-y divide-border/40">
         {active.map(idee => {
           const cfg        = STATUT_CONFIG[idee.statut]
           const isOpen     = expanded[idee.id] ?? false
@@ -287,7 +294,7 @@ export default function IdeesPage() {
           const suggestion = suggestions[idee.id]
 
           return (
-            <div key={idee.id} className="bg-surface border border-border rounded-xl overflow-hidden">
+            <div key={idee.id} className="overflow-hidden">
 
               {/* Header — titre seul, tout le reste au clic */}
               <button
@@ -554,14 +561,8 @@ export default function IdeesPage() {
           )
         })}
 
-        {active.length === 0 && !showForm && (
-          <div className="text-center py-10 bg-surface border border-border rounded-2xl">
-            <p className="text-3xl mb-2">💡</p>
-            <p className="text-sm font-medium text-ink">Aucune idée en cours</p>
-            <p className="text-xs text-muted mt-1">Clique sur "Capturer" pour noter une idée</p>
-          </div>
-        )}
-      </div>
+        </div>
+      ) : null}
 
       {/* Done ideas */}
       {done.length > 0 && (
@@ -575,9 +576,9 @@ export default function IdeesPage() {
             <span>({done.length})</span>
           </button>
           {showDone && (
-            <div className="mt-2 space-y-2">
+            <div className="mt-2 bg-surface border border-border rounded-2xl overflow-hidden divide-y divide-border/40">
               {done.map(idee => (
-                <div key={idee.id} className="flex items-center gap-3 px-4 py-2.5 bg-surface border border-border rounded-xl opacity-50 group">
+                <div key={idee.id} className="flex items-center gap-3 px-4 py-2.5 opacity-50 group hover:bg-beige-50 transition">
                   <span className={`w-2 h-2 rounded-full shrink-0 ${STATUS_DOT[idee.statut] ?? 'bg-border/50'}`} />
                   <span className="flex-1 text-sm text-muted line-clamp-1">{idee.texte}</span>
                   <button onClick={() => remove(idee.id)} className="opacity-0 group-hover:opacity-100 p-1 text-muted hover:text-red-400 transition shrink-0">
