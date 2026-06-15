@@ -229,17 +229,17 @@ export default function PipelinePage() {
             </button>
           </div>
         </div>
-        <div className="flex gap-2 overflow-x-auto pb-1 no-scrollbar">
+        <div className="flex gap-4 overflow-x-auto no-scrollbar border-b border-border/40">
           {ETAPES.map(e => (
             <button key={e.key} onClick={() => setActiveTab(e.key)}
-              className={`shrink-0 flex items-center gap-1.5 px-3 py-1.5 rounded-full text-xs font-semibold transition ${
+              className={`shrink-0 flex items-center gap-1.5 text-xs font-medium transition pb-2.5 border-b-2 -mb-px ${
                 activeTab === e.key
-                  ? 'bg-navy text-white'
-                  : 'bg-surface text-muted border border-border hover:border-primary/30'
+                  ? 'border-primary text-ink'
+                  : 'border-transparent text-muted hover:text-ink'
               }`}>
               {e.label}
               <span className={`rounded-full px-1.5 text-[10px] font-bold ${
-                activeTab === e.key ? 'bg-white/20 text-white' : 'bg-beige-100 text-muted'
+                activeTab === e.key ? 'bg-primary/10 text-primary' : 'bg-beige-100 text-muted'
               }`}>{counts[e.key]}</span>
             </button>
           ))}

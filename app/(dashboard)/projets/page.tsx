@@ -163,13 +163,13 @@ export default function ProjetsPage() {
       )}
 
       {/* Tabs */}
-      <div className="flex gap-1 bg-surface border border-border rounded-xl p-1">
+      <div className="flex gap-4 border-b border-border/40 -mb-2">
         {TABS.map(t => (
           <button
             key={t}
             onClick={() => setTab(t)}
-            className={`flex-1 text-xs py-2 rounded-lg font-medium transition ${
-              tab === t ? 'bg-primary text-white' : 'text-muted hover:text-ink'
+            className={`text-xs pb-2.5 font-medium transition border-b-2 -mb-px ${
+              tab === t ? 'border-primary text-ink' : 'border-transparent text-muted hover:text-ink'
             }`}
           >
             {t}
