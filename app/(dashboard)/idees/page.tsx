@@ -285,7 +285,7 @@ export default function IdeesPage() {
           <p className="text-xs text-muted mt-1">Clique sur &quot;Capturer&quot; pour noter une idée</p>
         </div>
       ) : active.length > 0 ? (
-        <div className="bg-surface border border-border rounded-2xl overflow-hidden divide-y divide-border/40">
+        <div className="bg-surface divide-y divide-border/40">
         {active.map(idee => {
           const cfg        = STATUT_CONFIG[idee.statut]
           const isOpen     = expanded[idee.id] ?? false
@@ -576,7 +576,7 @@ export default function IdeesPage() {
             <span>({done.length})</span>
           </button>
           {showDone && (
-            <div className="mt-2 bg-surface border border-border rounded-2xl overflow-hidden divide-y divide-border/40">
+            <div className="mt-2 bg-surface divide-y divide-border/40">
               {done.map(idee => (
                 <div key={idee.id} className="flex items-center gap-3 px-4 py-2.5 opacity-50 group hover:bg-beige-50 transition">
                   <span className={`w-2 h-2 rounded-full shrink-0 ${STATUS_DOT[idee.statut] ?? 'bg-border/50'}`} />

@@ -259,7 +259,7 @@ export default function PipelinePage() {
             </p>
           </div>
         ) : (
-          <div className="bg-surface border border-border rounded-2xl overflow-hidden divide-y divide-border/40">
+          <div className="bg-surface divide-y divide-border/40">
           {filtered.map(p => {
             const pInter    = interactions[p.id] || []
             const expanded  = expandedId === p.id

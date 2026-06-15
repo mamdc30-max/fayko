@@ -187,7 +187,7 @@ export default function ProjetsPage() {
           <p className="text-xs text-muted mt-1">Clique sur &quot;Nouveau&quot; pour en créer un</p>
         </div>
       ) : (
-        <div className="bg-surface border border-border rounded-2xl overflow-hidden divide-y divide-border/40">
+        <div className="bg-surface divide-y divide-border/40">
         {filtered.map(p => {
           const cfg    = TYPE_CONFIG[p.type]
           const statut = STATUT_CONFIG[p.statut]
