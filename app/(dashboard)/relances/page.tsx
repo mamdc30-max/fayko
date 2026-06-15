@@ -147,10 +147,10 @@ export default function RelancesPage() {
           <h2 className="font-semibold text-ink text-sm mb-3 flex items-center gap-2">
             <Check size={14} className="text-green-500" /> Relances effectuées ({effectuees.length})
           </h2>
-          <div className="space-y-2">
+          <div className="bg-surface divide-y divide-border/40">
             {effectuees.map(d => (
               <Link key={d.id} href={`/devis/${d.id}`}
-                className="flex items-center justify-between bg-surface rounded-2xl px-4 py-3 border border-border opacity-60">
+                className="flex items-center justify-between px-4 py-3 opacity-60 hover:bg-beige-50 transition">
                 <div>
                   <p className="text-sm font-medium text-ink">{d.clients.prenom} {d.clients.nom}</p>
                   <p className="text-xs text-muted">{d.titre}</p>

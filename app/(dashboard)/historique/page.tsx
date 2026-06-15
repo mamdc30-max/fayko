@@ -69,10 +69,10 @@ export default function HistoriquePage() {
       </div>
 
       {/* View toggle */}
-      <div className="flex bg-beige-100 rounded-xl p-1 gap-1">
+      <div className="flex gap-6 border-b border-border/40">
         {(['liste', 'dossiers'] as const).map(v => (
           <button key={v} onClick={() => setView(v)}
-            className={`flex-1 py-2 rounded-lg text-sm font-medium transition ${view === v ? 'bg-surface text-stone-800 shadow-sm' : 'text-muted'}`}>
+            className={`text-sm font-medium pb-2.5 border-b-2 -mb-px transition ${view === v ? 'border-primary text-ink' : 'border-transparent text-muted hover:text-ink'}`}>
             {v === 'liste' ? 'Liste' : 'Dossiers clients'}
           </button>
         ))}
@@ -100,26 +100,30 @@ export default function HistoriquePage() {
 
       {/* Liste view */}
       {view === 'liste' && (
-        <div className="space-y-2">
+        <div>
           {filtered.length === 0 && (
             <div className="text-center py-12 text-muted text-sm">{isAdmin ? 'Aucun devis trouvé' : 'Aucune commande trouvée'}</div>
           )}
-          {filtered.map(d => (
-            <Link key={d.id} href={`/devis/${d.id}`}
-              className="flex items-center justify-between bg-surface rounded-2xl px-4 py-3 border border-border hover:border-primary/30 transition">
-              <div className="flex-1 min-w-0">
-                <div className="flex items-center gap-2">
-                  <span className="text-xs text-muted font-mono">#{String(d.numero).padStart(3, '0')}</span>
-                  <p className="text-sm font-semibold text-stone-800 truncate">{d.clients.prenom} {d.clients.nom}</p>
-                </div>
-                <p className="text-xs text-muted mt-0.5 truncate">{d.titre} • {formatDate(d.created_at)}</p>
-              </div>
-              <div className="flex flex-col items-end gap-1 ml-3 shrink-0">
-                <span className="text-sm font-semibold text-stone-800">{formatPrice(d.total_ht)}</span>
-                <span className={`text-xs px-2 py-0.5 rounded-full font-medium ${STATUT_COLORS[d.statut]}`}>{d.statut}</span>
-              </div>
-            </Link>
-          ))}
+          {filtered.length > 0 && (
+            <div className="bg-surface divide-y divide-border/40">
+              {filtered.map(d => (
+                <Link key={d.id} href={`/devis/${d.id}`}
+                  className="flex items-center justify-between px-4 py-3 hover:bg-beige-50 transition">
+                  <div className="flex-1 min-w-0">
+                    <div className="flex items-center gap-2">
+                      <span className="text-xs text-muted font-mono">#{String(d.numero).padStart(3, '0')}</span>
+                      <p className="text-sm font-semibold text-stone-800 truncate">{d.clients.prenom} {d.clients.nom}</p>
+                    </div>
+                    <p className="text-xs text-muted mt-0.5 truncate">{d.titre} • {formatDate(d.created_at)}</p>
+                  </div>
+                  <div className="flex flex-col items-end gap-1 ml-3 shrink-0">
+                    <span className="text-sm font-semibold text-stone-800">{formatPrice(d.total_ht)}</span>
+                    <span className={`text-xs px-2 py-0.5 rounded-full font-medium ${STATUT_COLORS[d.statut]}`}>{d.statut}</span>
+                  </div>
+                </Link>
+              ))}
+            </div>
+          )}
         </div>
       )}
 

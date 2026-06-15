@@ -280,7 +280,7 @@ export default function TachesPage() {
       )}
 
       {/* Sections groupées */}
-      <div className="bg-surface rounded-2xl border border-border p-3 space-y-4">
+      <div className="space-y-4 py-1">
         <Section title="🔴 En retard"    tasks={overdue}  onToggle={toggle} onDelete={remove} />
         <Section title="📅 Aujourd'hui" tasks={todayT}   onToggle={toggle} onDelete={remove} />
         <Section title="📆 Cette semaine" tasks={thisWeek} onToggle={toggle} onDelete={remove} />

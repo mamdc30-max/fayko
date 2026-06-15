@@ -128,19 +128,19 @@ export default function ReseauPage() {
       </div>
 
       {/* View toggle */}
-      <div className="flex rounded-xl border border-border overflow-hidden bg-surface">
+      <div className="flex gap-6 border-b border-border/40">
         <button
           onClick={() => setView('qualification')}
-          className={`flex-1 text-xs font-semibold py-2.5 transition ${
-            view === 'qualification' ? 'bg-navy text-white' : 'text-muted hover:bg-beige-50'
+          className={`text-xs font-medium pb-2.5 border-b-2 -mb-px transition ${
+            view === 'qualification' ? 'border-primary text-ink' : 'border-transparent text-muted hover:text-ink'
           }`}
         >
           Qualification
         </button>
         <button
           onClick={() => setView('annuaire')}
-          className={`flex-1 text-xs font-semibold py-2.5 transition ${
-            view === 'annuaire' ? 'bg-navy text-white' : 'text-muted hover:bg-beige-50'
+          className={`text-xs font-medium pb-2.5 border-b-2 -mb-px transition ${
+            view === 'annuaire' ? 'border-primary text-ink' : 'border-transparent text-muted hover:text-ink'
           }`}
         >
           Annuaire
@@ -221,13 +221,13 @@ export default function ReseauPage() {
           )}
 
           {/* Filter Tabs */}
-          <div className="flex gap-1 overflow-x-auto pb-0.5">
+          <div className="flex gap-4 overflow-x-auto no-scrollbar border-b border-border/40">
             {FILTER_TABS.map(t => (
               <button
                 key={t.key}
                 onClick={() => setTab(t.key)}
-                className={`shrink-0 text-xs px-3 py-2 rounded-xl font-medium transition ${
-                  tab === t.key ? 'bg-primary text-white' : 'bg-surface border border-border text-muted hover:text-ink'
+                className={`shrink-0 text-xs font-medium pb-2.5 border-b-2 -mb-px transition ${
+                  tab === t.key ? 'border-primary text-ink' : 'border-transparent text-muted hover:text-ink'
                 }`}
               >
                 {t.label}
@@ -239,14 +239,14 @@ export default function ReseauPage() {
           </div>
 
           {/* List */}
-          <div className="space-y-2">
+          <div className="bg-surface divide-y divide-border/40">
             {filtered.map(c => {
               const cfg      = QUAL_CONFIG[c.qualification]
               const isOpen   = expanded[c.id] ?? false
               const fullName = [c.prenom, c.nom].filter(Boolean).join(' ')
 
               return (
-                <div key={c.id} className="bg-surface border border-border rounded-2xl overflow-hidden">
+                <div key={c.id} className="overflow-hidden">
                   <button
                     onClick={() => setExpanded(e => ({ ...e, [c.id]: !e[c.id] }))}
                     className="w-full flex items-center gap-3 p-4 text-left hover:bg-beige-50 transition"
@@ -324,7 +324,7 @@ export default function ReseauPage() {
             })}
 
             {filtered.length === 0 && (
-              <div className="text-center py-10 bg-surface border border-border rounded-2xl">
+              <div className="text-center py-10">
                 <p className="text-3xl mb-2">🤝</p>
                 <p className="text-sm font-medium text-ink">
                   {tab === 'tous'
@@ -379,9 +379,9 @@ export default function ReseauPage() {
                         {items.length}
                       </span>
                     </div>
-                    <div className="space-y-2">
+                    <div className="bg-surface divide-y divide-border/40">
                       {items.map(c => (
-                        <div key={c.id} className="bg-surface border border-border rounded-2xl p-4">
+                        <div key={c.id} className="p-4">
                           <div className="flex items-start justify-between gap-2">
                             <div className="flex-1 min-w-0">
                               <p className="text-sm font-bold text-ink leading-tight">

@@ -169,13 +169,14 @@ export default function ContactsReseauPage() {
 
       {/* Tous les contacts */}
       {autres.length > 0 && (
-        <div className="space-y-2">
-          <h2 className="font-semibold text-stone-800 text-sm">
+        <div>
+          <h2 className="font-semibold text-stone-800 text-sm mb-2">
             {aRecontacter.length > 0 ? 'Autres contacts' : `Contacts (${autres.length})`}
           </h2>
+          <div className="bg-surface divide-y divide-border/40">
           {autres.map(c => (
             <div key={c.id}
-              className={`bg-surface rounded-2xl border border-border p-4 flex items-start gap-3 ${c.rappel_fait ? 'opacity-60' : ''}`}>
+              className={`p-4 flex items-start gap-3 ${c.rappel_fait ? 'opacity-60' : ''}`}>
               {c.photo_url ? (
                 <img src={c.photo_url} alt="carte" className="w-10 h-10 rounded-lg object-cover border border-border shrink-0" />
               ) : (
@@ -200,6 +201,7 @@ export default function ContactsReseauPage() {
               </div>
             </div>
           ))}
+          </div>
         </div>
       )}
 

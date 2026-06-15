@@ -81,15 +81,15 @@ export default function MissionsPage() {
       </div>
 
       {/* Filtres */}
-      <div className="flex gap-2">
+      <div className="flex gap-4 border-b border-border/40">
         {(['all', 'Urgente', 'Veille'] as Filtre[]).map(f => (
           <button
             key={f}
             onClick={() => setFilter(f)}
-            className={`px-3 py-1.5 rounded-lg text-xs font-medium transition ${
+            className={`text-xs font-medium pb-2.5 border-b-2 -mb-px transition ${
               filter === f
-                ? 'bg-primary text-white'
-                : 'bg-surface border border-border text-muted hover:text-ink'
+                ? 'border-primary text-ink'
+                : 'border-transparent text-muted hover:text-ink'
             }`}
           >
             {f === 'all' ? 'Toutes' : f === 'Urgente' ? '🔥 Urgentes' : '👀 En veille'}
@@ -109,7 +109,7 @@ export default function MissionsPage() {
           </p>
         </div>
       ) : (
-        <div className="space-y-3">
+        <div className="bg-surface divide-y divide-border/40">
           {filtered.map(m => <MissionCard key={m.id} mission={m} />)}
         </div>
       )}
@@ -120,7 +120,7 @@ export default function MissionsPage() {
 
 function MissionCard({ mission: m }: { mission: Mission }) {
   return (
-    <div className="bg-surface border border-border rounded-2xl p-4 space-y-2.5">
+    <div className="p-4 space-y-2.5">
       {/* Top row */}
       <div className="flex items-start justify-between gap-3">
         <div className="flex-1 min-w-0">
